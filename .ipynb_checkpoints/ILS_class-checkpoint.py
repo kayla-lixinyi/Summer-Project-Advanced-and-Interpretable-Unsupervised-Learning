@@ -131,79 +131,69 @@ class ILS():
 
         return labelled_points, unlabelled_points
 
-    def label_spreading(self, labelled_points, unlabelled_points):
-        """
+    def label_spreading(self, labelled_points, unlabelled_points, first_run = True):
+        '''
         Written by Amanda Parker
         Applies iterative label spreading to the given points
-        
-        Parameters
-        ----------
-        labelled_points : ndarray of shape(labelled_num, n_features+1)
-            Initial points that are already labelled, the last column indicates the label of the point. 
-            0 indicates unlabelled points, positive integers indicate labelled points.
-            
-        unlabelled_points = ndarray of shape(unlabelled_num, n_features+1)
-            Initial points that are not labelled, the last column indicates the label of the point. 
-            0 indicates unlabelled points, positive integers indicate labelled points.
-            
-        Returns
-        ---------
-        closest : ndarray of shape(n_samples-1, 2)
-            Each row indicates the point(in Column 2) where the point's(in Column 1) label is spread from
-            Both columns represent points as indices from 
-        """
-        indices = np.arange(self.data_set.shape[0]) 
-        oldIndex = np.arange(self.data_set.shape[0]) 
-       
+        INPUTS:
+            labelled_points = initial points that are already labelled
+                2D array with last column the points label
+            unlabelled_points = points in the data set that are not labelled
+                2D array with last column the points label (0)
+        OUTPUTS:
+            r_min = an 1D array which contains the R_min distance for eeach iteration
+        '''
+        featureColumns = self.data_set[0, :self.data_set.shape[1]] # Keep original index columns in DF
+        indices = np.arange(self.data_set.shape[0])
+        oldIndex = np.arange(self.data_set.shape[0])
+
         labelled = self.data_set[labelled_points]
         unlabelled = self.data_set[unlabelled_points]
-      
-        labelColumn = self.data_set.shape[1]-2
+
+        labelColumn = self.data_set.shape[1]-1
         # lists for ordered output data
         outD = []
         outID = []
         closeID = []
-    
-        count = 0
+
         # Continue to label data points until all data points are labelled
         while len(unlabelled) > 0 :
-            # Calculate labelled to unlabelled distances matrix (D) 
+            # Calculate labelled to unlabelled distances matrix (D)
             D = pairwise_distances(
                 labelled[:, :-1],
                 unlabelled[:, :-1], metric=self.metric)
             # Find the minimum distance between a labelled and unlabelled point
             # first the argument in the D matrix
             (posL, posUnL) = np.unravel_index(D.argmin(), D.shape)
-            #append R_min distance
-            self.rmin.append(D.min())
-            
+            if first_run:
+                self.rmin.append(D.min())
+
             # Switch label from 0 to new label
-            unlabelled[posUnL, labelColumn] = labelled[posL,labelColumn] 
+            unlabelled[posUnL, labelColumn] = labelled[posL,labelColumn]
             # move newly labelled point to labelled dataframe
             labelled = np.concatenate((labelled, unlabelled[posUnL, :].reshape(1,unlabelled.shape[1])), axis=0)
 
             # drop from unlabelled data frame
             unlabelled = np.delete(unlabelled, posUnL, 0)
-            
+
             # output the distance and id of the newly labelled point
+            outD.append(D.min())
             outID.append(posUnL)
             closeID.append(posL)
-            
-            
+
+
         # Throw error if loose or duplicate points
-        if labelled.shape[0] + unlabelled.shape[0] != self.data_set.shape[0] : 
+        if labelled.shape[0] + unlabelled.shape[0] != self.data_set.shape[0] :
             raise Exception(
                 '''The number of labelled ({}) and unlabelled ({}) points does not sum to the total ({})'''.format( len(labelled), len(unlabelled),self.data_set.shape[0]) )
         # Reodered index for consistancy
         newIndex = oldIndex[outID]
-        
+        # Column 1 = indices of point in orginal dataset, Column 2 = corresponding Rmin
+        orderLabelled = np.concatenate((np.array(newIndex).reshape((-1, 1)), np.array(outD).reshape((-1, 1))), axis=1)
+
         # ID of point label was spread from
-        closest = np.concatenate((np.array(newIndex).reshape((-1, 1)), np.array(closeID).reshape((-1, 1))), axis=1)      
-         
-        print(count)
-        # Add new labels
+        closest = np.concatenate((np.array(newIndex).reshape((-1, 1)), np.array(closeID).reshape((-1, 1))), axis=1)
+
         newLabels = labelled[:,self.data_set.shape[1]-1]
-        self.data_set[:,self.data_set.shape[1]-2] = newLabels
-        
         # return
-        return closest
+        return newLabels, np.concatenate((orderLabelled, closest), axis=1)
