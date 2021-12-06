@@ -69,7 +69,7 @@ class ILS():
         new_centers, new_unlabelled = self.find_initial_points() # step 2
 
         label_spreading = self.label_spreading(new_centers, new_unlabelled, first_run = False) #step 3
-
+        
         return self
 
     def find_minima(self):
@@ -82,8 +82,9 @@ class ILS():
             raise Exception("ILS has not been run yet")
 
         # smooth curve
-        filtered = gaussian_filter1d(self.moving_max(self.rmin, 5), self.min_cluster_size//32) ** (1/(self.data_set.shape[1] - 1))
-
+        filtered = gaussian_filter1d(self.moving_max(self.rmin, 5), self.min_cluster_size//8) ** (1/(self.data_set.shape[1] - 1))
+        plt.plot(filtered)
+        plt.show()
         index = np.arange(len(filtered))
         
 
@@ -118,6 +119,7 @@ class ILS():
         maxs = argrelmax(np.array(rmin), order = width//4)
         
         proms = self.peak_prom(maxs[0], rmin, width)
+        
         
         pks = []
 
@@ -232,6 +234,24 @@ class ILS():
     def create_colr(self, lsts):
         colour = ['red', 'blue', 'gray', 'black', 'orange', 'purple', 'green', 'yellow', 'brown', 'red', 'blue', 'gray', 'black', 'orange', 'purple', 'green', 'yellow', 'brown']
         return [colour[i] for i in lsts]
+    
+    def predict(self, points):
+        '''
+        predict takes in an array of points and returns an 1D array of there corresponding labels
+        INPUTS:
+            points = 2D array of floats
+        OUTPUTS:
+            labels = 1D array of labels in the same order as th points given.
+        '''
+        
+        D = pairwise_distances(self.data_set[:, :-1], 
+                             points,
+                             metric = self.metric)
+        
+        label_points = [np.unravel_index(D[:, i].argmin(), D[:, i].shape) for i in range(points.shape[0])]
+        label_points = [label_points[i][0] for i in range(len(label_points))]
+        
+        return self.data_set[label_points, -1]
         
     
     def plot_labels(self):
@@ -262,6 +282,9 @@ class ILS():
         """
         indices = np.arange(self.data_set.shape[0]) 
         oldIndex = np.arange(self.data_set.shape[0]) 
+        
+        indOrdering = np.array(labelled_points).reshape(-1,)
+        oldIndOrdering = np.array(unlabelled_points).reshape(-1,)
        
         labelled = self.data_set[labelled_points]
         unlabelled = self.data_set[unlabelled_points]
@@ -285,6 +308,9 @@ class ILS():
             #append R_min distance
             if first_run:
                 self.rmin.append(D.min())
+                
+            indOrdering = np.concatenate((indOrdering, oldIndOrdering[posUnL].reshape(1,)), axis = 0)
+            oldIndOrdering = np.delete(oldIndOrdering, posUnL, axis = 0)
             
             # Switch label from 0 to new label
             unlabelled[posUnL, labelColumn] = labelled[posL,labelColumn] 
@@ -305,6 +331,8 @@ class ILS():
         # Reodered index for consistancy
         newIndex = oldIndex[outID]
         
+        labelled = labelled[np.argsort(indOrdering), :]
+        
         # ID of point label was spread from
         closest = np.concatenate((np.array(newIndex).reshape((-1, 1)), np.array(closeID).reshape((-1, 1))), axis=1)      
 
@@ -312,4 +340,5 @@ class ILS():
         newLabels = labelled[:,self.data_set.shape[1]-1]
         #self.data_set[:,self.data_set.shape[1]-1] = newLabels
         self.data_set = labelled
+        self.labels = self.data_set[:, -1]
         return closest
