@@ -92,7 +92,7 @@ class ILS():
         # maxima = find_peaks_cwt(filtered, widths = len(filtered) * [self.min_cluster_size])
         #maxima = [i for i in maxima if i > self.min_cluster_size] #removing peaks at the beginning and end
         
-        maxima = self.find_peaks(filtered, self.min_cluster_size, 0.2)
+        maxima = self.find_peaks(filtered, self.min_cluster_size, 0.1)
         maxima = [i for i in maxima if i < len(filtered) - self.min_cluster_size]
         lst = [1 if i in maxima else 0 for i in range(len(filtered))]
 
@@ -119,7 +119,6 @@ class ILS():
         maxs = argrelmax(np.array(rmin), order = width//4)
         
         proms = self.peak_prom(maxs[0], rmin, width)
-        
         
         pks = []
 
@@ -252,6 +251,14 @@ class ILS():
         label_points = [label_points[i][0] for i in range(len(label_points))]
         
         return self.data_set[label_points, -1]
+    
+    def coloured_rmin(self):
+        colour = ['red', 'blue', 'gray', 'black', 'orange', 'purple', 'green', 'yellow', 'brown', 'red', 'blue', 'gray', 'black', 'orange', 'purple', 'green', 'yellow', 'brown']
+        
+        for i in range(len(self.rmin)-2):
+            plt.plot([i, i+1], self.rmin[i:i+2], color = colour[self.data_set[self.indOrdering.astype(int)[i], -1].astype(int)], linewidth = 0.2)
+        
+        plt.show()
         
     
     def plot_labels(self):
@@ -330,6 +337,8 @@ class ILS():
                 '''The number of labelled ({}) and unlabelled ({}) points does not sum to the total ({})'''.format( len(labelled), len(unlabelled),self.data_set.shape[0]) )
         # Reodered index for consistancy
         newIndex = oldIndex[outID]
+        if first_run:
+            self.indOrdering = indOrdering
         
         labelled = labelled[np.argsort(indOrdering), :]
         
