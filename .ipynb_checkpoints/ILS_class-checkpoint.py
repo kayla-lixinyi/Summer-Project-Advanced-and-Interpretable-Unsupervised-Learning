@@ -38,11 +38,12 @@ class ILS():
     ##to be added after implementation of find peaks algorithm
 
     """
-    def __init__(self, n_clusters = None, min_cluster_size = None, metric = 'euclidean'):
+    def __init__(self, n_clusters = None, min_cluster_size = None, metric = 'euclidean', plot_rmin = False):
 
         self.n_clusters = n_clusters # need to calculate defaults based on data set input
         self.min_cluster_size = min_cluster_size
         self.metric = metric
+        self.plot_rmin = plot_rmin
 
     def fit(self, X):
         '''
@@ -83,8 +84,7 @@ class ILS():
 
         # smooth curve
         filtered = gaussian_filter1d(self.moving_max(self.rmin, 5), self.min_cluster_size//8) ** (1/(self.data_set.shape[1] - 1))
-        plt.plot(filtered)
-        plt.show()
+        filtered = (filtered - np.min(filtered))/(np.max(filtered) - np.min(filtered))
         index = np.arange(len(filtered))
         
 
@@ -92,9 +92,13 @@ class ILS():
         # maxima = find_peaks_cwt(filtered, widths = len(filtered) * [self.min_cluster_size])
         #maxima = [i for i in maxima if i > self.min_cluster_size] #removing peaks at the beginning and end
         
-        maxima = self.find_peaks(filtered, self.min_cluster_size, 0.1)
-        maxima = [i for i in maxima if i < len(filtered) - self.min_cluster_size]
+        maxima = self.find_peaks(filtered, self.min_cluster_size, 0.3)
+
         lst = [1 if i in maxima else 0 for i in range(len(filtered))]
+        if self.plot_rmin == True:
+            plt.plot(filtered)
+            plt.plot(lst)
+            plt.show()
 
         betweenMax = np.split(filtered, maxima)
         betweenIndex = np.split(index, maxima)        
@@ -103,6 +107,30 @@ class ILS():
         plt.show()
         
         return minima
+    
+    def prom_widths(self, peak_lst):
+        '''
+        Given the list of possible peaks calculate the distance between the neighbours. This is then used as the window
+        on either side of the peak to calculate the peak prominence. If it is the first peak or last peak we choose a large number
+        so that singular peak prominence will use a left or right window size of maximal width.
+        INPUTS:
+            peak_lst = lst of peak indices (integers)
+        OUTPUTS:
+            widths = list of tuples of integers. First element and second element in the tuple is the left and right width respectively.
+                order corresponds to the order of peaks given.
+        '''
+        
+        widths = []
+        
+        for i in range(len(peak_lst)):
+            if i == 0:
+                widths.append((self.data_set.shape[0], peak_lst[i + 1] - peak_lst[i])) 
+            elif i == len(peak_lst) - 1:
+                widths.append((peak_lst[i] - peak_lst[i-1], self.data_set.shape[0]))
+            else:
+                widths.append((peak_lst[i] - peak_lst[i-1], peak_lst[i+1] - peak_lst[i]))
+        
+        return widths
     
     def find_peaks(self, rmin, width, threshold):
         '''
@@ -118,7 +146,9 @@ class ILS():
     
         maxs = argrelmax(np.array(rmin), order = width//4)
         
-        proms = self.peak_prom(maxs[0], rmin, width)
+        widths = self.prom_widths(maxs[0])
+        
+        proms = self.peak_prom(maxs[0], rmin, widths)
         
         pks = []
 
@@ -128,13 +158,13 @@ class ILS():
 
         return pks
     
-    def peak_prom(self, peaks, rmin, window):
+    def peak_prom(self, peaks, rmin, windows):
         '''
         Calculate the prominence for a given list of peaks within a list of doubles.
         INPUTS:
             peaks = list of integers indicating the index of the peaks within rmin
             rmin = list of doubles
-            window = window size for the surroundings the peak should be compared to
+            window = list of tuples containing left and right width for each peak
         OUPUTS:
             proms = list of peak prominence in the same ordering as the peaks were given
         '''
@@ -142,14 +172,16 @@ class ILS():
         proms = []
         
         for i in range(len(peaks)):
-            proms.append(self.singular_peak_prominence(peaks[i], rmin, window))
+            proms.append(self.singular_peak_prominence(peaks[i], rmin, windows[i]))
         
         return proms
     
     def singular_peak_prominence(self, peak, rmin, window):
         '''
         Calculate the peak prominence for a given peak. However standardise the input such that the maximum is 1. 
-        This means the the prominence of a peak is not a function of its magnitude but rather its magnitude relative to its surroudings
+        This means the the prominence of a peak is not a function of its magnitude but rather its magnitude relative to its surroudings.
+        Also instead of taking the difference between the maximum and the highest minimum out of left or right we take the smallest 
+        minimum on each side. ILS also seeks to detect step changes, this change handles step changes to some extent.
         INPUTS:
             peak = index of of a local maximum to calculate peak prominence for
             rmin = list of floats where the peak exists in
@@ -157,9 +189,11 @@ class ILS():
         OUTPUTS:
             prominence = the prominence of the given peak (double)
         '''
+        left_window = window[0]
+        right_window = window[1]
         
-        sublst1 = rmin[max([peak - window, 0]):peak]
-        sublst2 = rmin[peak+1:min([peak + window, len(rmin)-1])]
+        sublst1 = rmin[max([peak - left_window, 0]):peak]
+        sublst2 = rmin[peak+1:min([peak + right_window, len(rmin)-1])]
 
         maxim = max([max(sublst1), max(sublst2)])
         
@@ -169,7 +203,7 @@ class ILS():
         if min1 is None or min2 is None:
             raise Exception("The peak is not a local maximum")
         
-        minimum = max(min(sublst1), min(sublst2))
+        minimum = min(min1, min2)
         
         return (rmin[peak] - minimum) / rmin[peak]
     
@@ -256,7 +290,7 @@ class ILS():
         colour = ['red', 'blue', 'gray', 'black', 'orange', 'purple', 'green', 'yellow', 'brown', 'red', 'blue', 'gray', 'black', 'orange', 'purple', 'green', 'yellow', 'brown']
         
         for i in range(len(self.rmin)-2):
-            plt.plot([i, i+1], self.rmin[i:i+2], color = colour[self.data_set[self.indOrdering.astype(int)[i], -1].astype(int)], linewidth = 0.2)
+            plt.plot([i, i+1], self.rmin[i:i+2], color = colour[self.data_set[self.indOrdering.astype(int)[i], -1].astype(int)], linewidth = 0.8)
         
         plt.show()
         
@@ -340,7 +374,7 @@ class ILS():
         if first_run:
             self.indOrdering = indOrdering
         
-        labelled = labelled[np.argsort(indOrdering), :]
+        #labelled = labelled[np.argsort(indOrdering), :]
         
         # ID of point label was spread from
         closest = np.concatenate((np.array(newIndex).reshape((-1, 1)), np.array(closeID).reshape((-1, 1))), axis=1)      
@@ -349,5 +383,6 @@ class ILS():
         newLabels = labelled[:,self.data_set.shape[1]-1]
         #self.data_set[:,self.data_set.shape[1]-1] = newLabels
         self.data_set = labelled
-        self.labels = self.data_set[:, -1]
+        # invert the permutation and then assign the labels
+        self.labels = self.data_set[np.argsort(indOrdering), -1].copy()
         return closest
