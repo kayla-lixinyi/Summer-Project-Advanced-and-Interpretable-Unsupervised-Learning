@@ -38,7 +38,7 @@ class ILS():
     ##to be added after implementation of find peaks algorithm
 
     """
-    def __init__(self, n_clusters = None, min_cluster_size = None, metric = 'euclidean', plot_rmin = False, sensitivity = 0.4):
+    def __init__(self, n_clusters = None, min_cluster_size = None, metric = 'euclidean', plot_rmin = False, sensitivity = 0.1):
 
         self.n_clusters = n_clusters # need to calculate defaults based on data set input
         self.min_cluster_size = min_cluster_size
@@ -60,20 +60,20 @@ class ILS():
         if self.min_cluster_size is None and self.n_clusters is None:
             self.min_cluster_size = int (0.05 * X.shape[0])
         elif self.min_cluster_size is None:
-            self.min_cluster_size = int (X.shape[0]/(self.n_clusters * 0.5)) #currently assumes maximum of 20 clusters
+            self.min_cluster_size = int (X.shape[0]/(self.n_clusters * 2)) #currently assumes maximum of 20 clusters
 
         self.data_set = np.concatenate((np.array(X), np.zeros((X.shape[0],1))), axis = 1)
         self.rmin = []
 
         self.data_set[0, X.shape[1]] = 1 #initialise first label
         unlabelled = [i + 1 for i in range(X.shape[0] - 1)] # step 1
-
-        label_spreading = self.label_spreading([0], unlabelled)
-
-        new_centers, new_unlabelled = self.find_initial_points() # step 2
-
-        label_spreading = self.label_spreading(new_centers, new_unlabelled, first_run = False) #step 3
         
+        label_spreading = self.label_spreading([0], unlabelled)
+        
+        new_centers, new_unlabelled = self.find_initial_points() # step 2
+        
+        label_spreading = self.label_spreading(new_centers, new_unlabelled, first_run = False) #step 3
+
         return self
 
     def find_minima(self):
@@ -84,32 +84,43 @@ class ILS():
         '''
         if self.rmin == []:
             raise Exception("ILS has not been run yet")
-
-        # smooth curve
-        filtered = gaussian_filter1d(self.moving_max(self.rmin, 5), self.min_cluster_size//4) ** (1/(self.data_set.shape[1] - 1))
-        filtered = (filtered - np.min(filtered))/(np.max(filtered) - np.min(filtered))
-        index = np.arange(len(filtered))
         
+        # smooth curve        
+        filtered = self.rmin[:-self.min_cluster_size//4]
+        filtered = self.moving_max(filtered, self.min_cluster_size//16)
+        filtered = gaussian_filter1d(filtered, self.min_cluster_size//8)
+        filtered[-10] = np.min(filtered)/2 # removing problem of extremely low densities
+        filtered = -1 * np.log(filtered)
+        filtered = -1 * (filtered - np.min(filtered))/(np.max(filtered) - np.min(filtered))
+        filtered = filtered - np.min(filtered)
+        index = np.arange(len(filtered))
+        fil = filtered
 
         # find peaks, remove peaks and the beginning and end if implied cluster size is too small
-        # maxima = find_peaks_cwt(filtered, widths = len(filtered) * [self.min_cluster_size])
-        #maxima = [i for i in maxima if i > self.min_cluster_size] #removing peaks at the beginning and end
+
         if self.n_clusters is None:
             maxima = self.find_peaks(filtered, self.min_cluster_size, self.sensitivity)
         else:
-            maxima = self.find_peaks(filtered, self.min_cluster_size, 0)
-
-        lst = [1 if i in maxima else 0 for i in range(len(filtered))]
-        if self.plot_rmin == True:
-            plt.plot(filtered)
-            plt.plot(lst)
-            plt.show()
+            maxima = self.find_peaks(filtered, self.min_cluster_size, 0) 
+        
+        filtered = gaussian_filter1d(self.rmin, self.min_cluster_size//32)
+        filtered = (filtered - np.min(filtered))/(np.max(filtered) - np.min(filtered))
 
         betweenMax = np.split(filtered, maxima)
         betweenIndex = np.split(index, maxima)        
         
-        minima = [np.argmin(betweenMax[i]) + min(betweenIndex[i]) for i in range(len(betweenMax))]
-        plt.show()
+        minima = [np.argmin(betweenMax[i]) + betweenIndex[i][0] for i in range(len(betweenMax))]
+        
+        lst = [1 if i in maxima else 0 for i in range(len(filtered))]
+        lst1 = [1 if i in minima else 0 for i in range(len(filtered))]
+        
+        if self.plot_rmin == True:
+            plt.plot(fil)
+            plt.plot(self.rmin)
+            plt.plot(filtered)
+            plt.plot(lst, c = 'yellow')
+            plt.plot(lst1, c = 'red')
+            plt.show()
         
         return minima
     
@@ -149,7 +160,7 @@ class ILS():
             pks = index of peaks that have been found
         '''
     
-        maxs = argrelmax(np.array(rmin), order = width//4)
+        maxs = argrelmax(np.array(rmin), order = 10)
         
         widths = self.prom_widths(maxs[0])
         
@@ -162,11 +173,11 @@ class ILS():
                     pks.append(maxs[0][i])
         else:
             try:
-                inds = np.argpartition(pks, -1 * self.n_clusters)[-1 * self.n_clusters:]
-                pks = maxs[0][inds]
+                inds = np.argpartition(proms, -1 * (self.n_clusters-1))[-1 * (self.n_clusters-1):]
+                pks = np.sort(maxs[0][inds]).tolist()
             except:
                 raise Exception("There are not {} clusters".format(self.n_clusters))
-                
+                            
         return pks
     
     def peak_prom(self, peaks, rmin, windows):
@@ -216,7 +227,7 @@ class ILS():
         
         minimum = min(min1, min2)
         
-        return (rmin[peak] - minimum) / rmin[peak]
+        return (rmin[peak] - minimum)
     
     def mintillmax(self, sublst, maxthreshold):
         '''
@@ -263,10 +274,11 @@ class ILS():
 
         # label them in the data_set
         for i in labelled_points:
-            self.data_set[i, -1] = counter
+            self.data_set[self.indOrdering[i], -1] = counter
             counter += 1
 
-        # unlabelled points are just the compliment
+        labelled_points = self.indOrdering[labelled_points]
+
         unlabelled_points = [i for i in range(self.data_set.shape[0]) if not i in labelled_points]
 
         # check that we haven't missed any points
@@ -366,6 +378,7 @@ class ILS():
             
             # Switch label from 0 to new label
             unlabelled[posUnL, labelColumn] = labelled[posL,labelColumn] 
+            
             # move newly labelled point to labelled dataframe
             labelled = np.concatenate((labelled, unlabelled[posUnL, :].reshape(1,unlabelled.shape[1])), axis=0)
             # drop from unlabelled data frame
@@ -393,8 +406,7 @@ class ILS():
         # Add new labels
         newLabels = labelled[:,self.data_set.shape[1]-1]
         #self.data_set[:,self.data_set.shape[1]-1] = newLabels
-        self.data_set = labelled
+        self.data_set = labelled[np.argsort(indOrdering)]
         # invert the permutation and then assign the labels
-        self.labels = self.data_set[np.argsort(indOrdering), -1].copy()
+        self.labels = self.data_set[:, -1].copy()
         return closest
-    
