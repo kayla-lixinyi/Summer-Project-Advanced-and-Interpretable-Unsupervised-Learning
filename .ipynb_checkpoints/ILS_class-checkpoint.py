@@ -58,7 +58,7 @@ class ILS():
         '''
 
         if self.min_cluster_size is None and self.n_clusters is None:
-            self.min_cluster_size = int (0.1 * X.shape[0])
+            self.min_cluster_size = int (0.05 * X.shape[0])
         elif self.min_cluster_size is None:
             self.min_cluster_size = int (X.shape[0]/(self.n_clusters * 2)) #currently assumes maximum of 20 clusters
 
@@ -160,15 +160,18 @@ class ILS():
         # smooth curve
         if split == True:
             eps = 0.00001
-            filtered = rmin[self.min_cluster_size//8:-self.min_cluster_size] + eps
-            filtered = self.moving_max(filtered, self.min_cluster_size//16)
+            max_num_cluster = len(rmin)//self.min_cluster_size
+            filtered = rmin[self.min_cluster_size//8:-self.min_cluster_size * max_num_cluster // 8] + eps
+            filtered = self.moving_max(filtered, self.min_cluster_size//2)
             filtered = gaussian_filter1d(filtered, max(self.min_cluster_size//8, 2))
-            filtered[-10] = np.min(filtered)/4 # removing problem of extremely low densities by creating a point of lower density
+            filtered[-10] = np.min(filtered)/2 # removing problem of extremely low densities by creating a point of lower density
             filtered = -1 * np.log(filtered)
             filtered = -1 * (filtered - np.min(filtered))/(np.max(filtered) - np.min(filtered))
             filtered = filtered - np.min(filtered)
             index = np.arange(len(filtered))
-            fil = filtered
+            plt.plot(rmin[self.min_cluster_size//8:-self.min_cluster_size * max_num_cluster // 4] + eps)
+            plt.plot(filtered)
+            plt.show()
 
             if self.n_clusters is None:
                 maxima, proms = self.find_peaks(filtered, self.min_cluster_size, self.sensitivity)
@@ -201,11 +204,11 @@ class ILS():
         
         for i in range(len(peak_lst)):
             if i == 0:
-                widths.append((self.data_set.shape[0], peak_lst[i + 1] - peak_lst[i])) 
+                widths.append((self.min_cluster_size, min(self.min_cluster_size, peak_lst[i + 1] - peak_lst[i]))) 
             elif i == len(peak_lst) - 1:
-                widths.append((peak_lst[i] - peak_lst[i-1], self.data_set.shape[0]))
+                widths.append((min(self.min_cluster_size, peak_lst[i] - peak_lst[i-1]), self.min_cluster_size))
             else:
-                widths.append((peak_lst[i] - peak_lst[i-1], peak_lst[i+1] - peak_lst[i]))
+                widths.append((min(self.min_cluster_size, peak_lst[i] - peak_lst[i-1]), min(self.min_cluster_size, peak_lst[i+1] - peak_lst[i])))
         
         return widths
     
@@ -466,18 +469,3 @@ class ILS():
         # invert the permutation and then assign the labels
         self.labels = self.data_set[:, -1].copy()
         return closest
-    
-
-a = np.random.normal(-1, 0.1, (200, 2))
-b = np.random.normal(0, 0.2, (400, 2))
-c = np.random.normal(6, 0.5, (300, 2))
-d = np.random.normal(7, 0.25, (200, 2))
-e = np.random.normal(7.5, 0.125, (300, 2))
-f = np.random.normal(7.75, 0.06725, (200, 2))
-g = np.random.normal(7.88, 0.03225, (200, 2))
-
-test = np.concatenate((a, b, c, d, e, f, g), axis = 0)
-testILS = ILS(n_clusters = 7, min_cluster_size = 150, sensitivity = 0.1, plot_rmin = True)
-testILS.fit(test)
-testILS.plot_labels()
-testILS.coloured_rmin()
