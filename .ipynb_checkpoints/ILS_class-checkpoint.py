@@ -5,6 +5,7 @@ from scipy.signal import argrelmax
 from scipy.ndimage.filters import gaussian_filter1d
 from sklearn.metrics import pairwise_distances
 from sklearn.metrics.pairwise import distance_metrics
+from sklearn.manifold import TSNE
 
 class ILS():
     """ Iterative Label Spreading
@@ -132,9 +133,9 @@ class ILS():
             maxima = np.sort(np.array(maxima)[ind]).tolist()
            
         filtered = gaussian_filter1d(self.rmin, max(2, self.min_cluster_size//32))
-        filtered = (filtered - np.min(filtered))/(np.max(filtered) - np.min(filtered))
+        filter = (filtered - np.min(filtered))/(np.max(filtered) - np.min(filtered))
         
-        betweenMax = np.split(filtered, maxima)
+        betweenMax = np.split(filter, maxima)
         betweenIndex = np.split(index, maxima)        
         
         minima = [np.argmin(betweenMax[i]) + betweenIndex[i][0] for i in range(len(betweenMax))]
@@ -169,9 +170,6 @@ class ILS():
             filtered = -1 * (filtered - np.min(filtered))/(np.max(filtered) - np.min(filtered))
             filtered = filtered - np.min(filtered)
             index = np.arange(len(filtered))
-            plt.plot(rmin[self.min_cluster_size//8:-self.min_cluster_size * max_num_cluster // 4] + eps)
-            plt.plot(filtered)
-            plt.show()
 
             if self.n_clusters is None:
                 maxima, proms = self.find_peaks(filtered, self.min_cluster_size, self.sensitivity)
@@ -351,6 +349,15 @@ class ILS():
         colour = ['red', 'blue', 'gray', 'black', 'orange', 'purple', 'green', 'yellow', 'brown', 'red', 'blue', 'gray', 'black', 'orange', 'purple', 'green', 'yellow', 'brown']
         return [colour[i] for i in lsts]
     
+    def tSNE(self):
+        
+        points = self.data_set[:, :-1].copy()
+        
+        points_embedding = TSNE(metric = self.metric).fit(points)
+        
+        return points_embedding.embedding_      
+        
+    
     def predict(self, points):
         '''
         predict takes in an array of points and returns an 1D array of there corresponding labels
@@ -379,7 +386,12 @@ class ILS():
     
     def plot_labels(self):
         
-        plt.scatter(self.data_set[:, 0], self.data_set[:, 1], color = self.create_colr(self.data_set[:, -1].astype(int)),s = 2)
+        if self.data_set.shape[1] - 1 > 2:
+            data_set = np.concatenate((self.tSNE(), self.data_set[:, -1].reshape((-1,1))), axis = 1)
+        else:
+            data_set = self.data_set
+        
+        plt.scatter(data_set[:, 0], data_set[:, 1], color = self.create_colr(data_set[:, -1].astype(int)),s = 2)
         plt.show()
 
     def label_spreading(self, labelled_points, unlabelled_points, first_run = True):
