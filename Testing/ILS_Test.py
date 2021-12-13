@@ -17,7 +17,7 @@ plt.style.use('ggplot')
 
 euclidean_distance = lambda data, point: np.sqrt(np.sum(np.power(data - point, 2), axis = 1).reshape((len(data), 1)))
 
-target = genfromtxt('target.csv', delimiter=',')
+target = pd.read_csv('target.csv', header=1)
 np.nan_to_num(target)
 
 
