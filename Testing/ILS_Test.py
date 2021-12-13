@@ -7,6 +7,7 @@ Created on Tue Dec  7 15:11:57 2021
 
 from sklearn.datasets import *
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import ndimage
 
@@ -18,7 +19,6 @@ plt.style.use('ggplot')
 euclidean_distance = lambda data, point: np.sqrt(np.sum(np.power(data - point, 2), axis = 1).reshape((len(data), 1)))
 
 target = pd.read_csv('target.csv', header=1)
-np.nan_to_num(target)
 
 
 class Test(unittest.TestCase):
