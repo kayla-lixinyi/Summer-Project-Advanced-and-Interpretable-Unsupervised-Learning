@@ -70,7 +70,8 @@ class Test(unittest.TestCase):
         # Plotting
         ils.plot_labels()
         
-    def testBlob(self):
+    # @unittest.skip("no")
+    def testArtSet_one(self):
         no_of_clusters = 4
         
         # Create the dataset
