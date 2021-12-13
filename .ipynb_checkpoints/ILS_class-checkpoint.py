@@ -94,8 +94,8 @@ class ILS():
             mean1 = np.mean(rmin[maxs[0][i]:maxs[0][i]+self.min_cluster_size])
             standev1 = np.var(rmin[maxs[0][i]:maxs[0][i]+self.min_cluster_size]) ** 0.5
             
-            signifdiff = rmin[maxs[0][i]] > mean + 5 * standev
-            signifdiff1 = rmin[maxs[0][i]] > mean1 + 5 * standev1
+            signifdiff = rmin[maxs[0][i]] > mean + 2.56 * standev
+            signifdiff1 = rmin[maxs[0][i]] > mean1 + 2.56 * standev1
             
             if signifdiff and signifdiff1: 
                 peaks.append(maxs[0][i])
@@ -222,7 +222,7 @@ class ILS():
             pks = index of peaks that have been found
         '''
     
-        maxs = argrelmax(np.array(rmin), order = 10)
+        maxs = argrelmax(np.array(rmin), order = self.min_cluster_size//8)
         
         widths = self.prom_widths(maxs[0])
         
