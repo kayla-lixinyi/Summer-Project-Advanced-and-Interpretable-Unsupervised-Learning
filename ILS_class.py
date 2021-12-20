@@ -39,13 +39,12 @@ class ILS():
     ##to be added after implementation of find peaks algorithm
 
     """
-    def __init__(self, n_clusters = None, min_cluster_size = None, metric = 'euclidean', plot_rmin = False, sensitivity = 0.1):
+    def __init__(self, n_clusters = None, min_cluster_size = None, metric = 'euclidean', significance = 3.4):
 
         self.n_clusters = n_clusters # need to calculate defaults based on data set input
         self.min_cluster_size = min_cluster_size
         self.metric = metric
-        self.plot_rmin = plot_rmin
-        self.sensitivity = sensitivity
+        self.significance = significance
 
     def fit(self, X):
         '''
@@ -77,243 +76,108 @@ class ILS():
 
         return self
     
-    def split_disconnected(self, rmin):
+    def find_minima(self):
         
-        maxs = argrelmax(np.array(rmin), order = self.min_cluster_size - 1) 
-        peaks = []
-        for i in range(maxs[0].shape[0]):
-            if maxs[0][i] < self.min_cluster_size or len(rmin) - i < self.min_cluster_size: 
-                continue
-            if i != 0 and maxs[0][i] - maxs[0][i-1] < self.min_cluster_size:
-                print("Warning: minimum cluster size is too large by {}, try making it smaller or specifying a default".format(maxs[0][i] - maxs[0][i-1]))
-                print("Current minimum cluster size is {}".format(self.min_cluster_size))
-                
-            mean = np.mean(rmin[maxs[0][i] - self.min_cluster_size:maxs[0][i]])
-            standev = np.var(rmin[maxs[0][i] - self.min_cluster_size:maxs[0][i]]) ** 0.5
-            
-            mean1 = np.mean(rmin[maxs[0][i]:maxs[0][i]+self.min_cluster_size])
-            standev1 = np.var(rmin[maxs[0][i]:maxs[0][i]+self.min_cluster_size]) ** 0.5
-            
-            signifdiff = rmin[maxs[0][i]] > mean + 2.56 * standev
-            signifdiff1 = rmin[maxs[0][i]] > mean1 + 2.56 * standev1
-            
-            if signifdiff and signifdiff1: 
-                peaks.append(maxs[0][i])
-                
-        return peaks
-        
-    def find_minima(self,):
-        
-        peaks = self.split_disconnected(self.rmin)
         index = np.arange(len(self.rmin))
         
-        betweenGroups = np.split(self.rmin, peaks)
-        betweenIndex = np.split(index, peaks)
+        pks = self.find_maxima_forward(self.rmin, [], 0)
+        reved = self.find_maxima_forward(self.rmin[::-1], [], 0)
+        non_rev = [len(self.rmin) - reved[i] - 1 for i in range(len(reved))]
+        pks = pks + non_rev[::-1]
+        pks = np.sort(pks)
         
-        maxima = []
-        minima = []
-        proms = []
+        pks, n_SD = self.split_disconnected(self.rmin, pks)
         
-        for i in range(len(betweenGroups)):
-            if i != 0:
-                maxima.append(betweenIndex[i][0])
-                proms.append(len(betweenGroups) - i + 1)
-            if betweenGroups[i].shape[0] < 2 * self.min_cluster_size:
-                maxim, prominence = self.minima_within_connected(betweenGroups[i], split = False)
-                maxim = [maxim[j] + betweenIndex[i][0] + 1 for j in range(len(maxim))]
-            else:
-                betweenGroups[i][0] = 0
-                maxim, prominence = self.minima_within_connected(betweenGroups[i], split = True)
-                maxim = [maxim[j] + betweenIndex[i][0] + 1 for j in range(len(maxim))]
-            maxima = maxima + maxim
-            proms = proms + prominence
-            
+        maxima, max_SD = self.get_final(pks, self.min_cluster_size//4 * 3, n_SD)
+        
         if not self.n_clusters is None:
-            ind = np.argpartition(proms, -self.n_clusters + 1)[-self.n_clusters + 1:].tolist()
-            maxima = np.sort(np.array(maxima)[ind]).tolist()
-           
-        filtered = gaussian_filter1d(self.rmin, max(2, self.min_cluster_size//32))
-        filter = (filtered - np.min(filtered))/(np.max(filtered) - np.min(filtered))
+            try:
+                inds = np.argsort(max_SD)[-self.n_clusters+1:]
+                maxima = np.sort([maxima[i] for i in inds]).tolist()
+            except:
+                raise Exception("Only {} clusters were found. If you do not know how many clusters there are do not specify a number")
         
-        betweenMax = np.split(filter, maxima)
+        filtered = gaussian_filter1d(self.rmin, max(2, self.min_cluster_size//32))
+        
+        betweenMax = np.split(filtered, maxima)
         betweenIndex = np.split(index, maxima)        
         
         minima = [np.argmin(betweenMax[i]) + betweenIndex[i][0] for i in range(len(betweenMax))]
         
-        if self.plot_rmin:
-            maxmlst = [1 if i in maxima or i in peaks else 0 in maxima for i in range(len(self.rmin))]
-            plt.plot(self.rmin)
-            plt.plot(filtered)
-            plt.plot(maxmlst)
-            plt.show()
-            
         return minima
+    
+    def find_maxima_forward(self, rmin, pks, check_peak):
+    
+        if check_peak + self.min_cluster_size > len(rmin) - 1:
+            return pks
 
-    def minima_within_connected(self, rmin, split = True):
-        '''
-        Find index of points that serve as the initial label for the final label spreading. 
-        OUTPUT:
-            index = list index of r_min plot
-        '''
-        if self.rmin == []:
-            raise Exception("ILS has not been run yet")
-        
-        # smooth curve
-        if split == True:
-            eps = 0.00001
-            max_num_cluster = len(rmin)//self.min_cluster_size
-            filtered = rmin[self.min_cluster_size//8:-self.min_cluster_size * max_num_cluster // 8] + eps
-            filtered = self.moving_max(filtered, self.min_cluster_size//2)
-            filtered = gaussian_filter1d(filtered, max(self.min_cluster_size//8, 2))
-            filtered[-10] = np.min(filtered)/2 # removing problem of extremely low densities by creating a point of lower density
-            filtered = -1 * np.log(filtered)
-            filtered = -1 * (filtered - np.min(filtered))/(np.max(filtered) - np.min(filtered))
-            filtered = filtered - np.min(filtered)
-            index = np.arange(len(filtered))
+        sublst = rmin[check_peak:check_peak + self.min_cluster_size]
 
-            if self.n_clusters is None:
-                maxima, proms = self.find_peaks(filtered, self.min_cluster_size, self.sensitivity)
-                maxima = [i + self.min_cluster_size//8 for i in maxima]
-            else:
-                maxima, proms = self.find_peaks(filtered, self.min_cluster_size, 0) 
-                maxima = [i + self.min_cluster_size//8 for i in maxima]
+        maxind = np.argmax(sublst)
+
+        if maxind == 0:
+            pks.append(check_peak)
+            return self.find_maxima_forward(rmin, pks, check_peak+1)
         else:
-            index = np.arange(len(rmin))
-            maxima = []
-            proms = []
+            return self.find_maxima_forward(rmin, pks, check_peak+1)
+    
+    def split_disconnected(self, rmin, maxs):
 
-        return maxima, proms
-    
-    def prom_widths(self, peak_lst):
-        '''
-        Given the list of possible peaks calculate the distance between the neighbours. This is then used as the window
-        on either side of the peak to calculate the peak prominence. If it is the first peak or last peak we choose a large number
-        so that singular peak prominence will use a left or right window size of maximal width.
-        INPUTS:
-            peak_lst = lst of peak indices (integers)
-        OUTPUTS:
-            widths = list of tuples of integers. First element and second element in the tuple is the left and right width respectively.
-                order corresponds to the order of peaks given.
-        '''
-        if len(peak_lst) == 1:
-            return [(self.data_set.shape[0], self.data_set.shape[0])]
+        peaks = []
+        num_standev = []
         
-        widths = []
-        
-        for i in range(len(peak_lst)):
-            if i == 0:
-                widths.append((self.min_cluster_size, min(self.min_cluster_size, peak_lst[i + 1] - peak_lst[i]))) 
-            elif i == len(peak_lst) - 1:
-                widths.append((min(self.min_cluster_size, peak_lst[i] - peak_lst[i-1]), self.min_cluster_size))
-            else:
-                widths.append((min(self.min_cluster_size, peak_lst[i] - peak_lst[i-1]), min(self.min_cluster_size, peak_lst[i+1] - peak_lst[i])))
-        
-        return widths
-    
-    def find_peaks(self, rmin, width, threshold):
-        '''
-        Find peaks within a given list of doubles. Given a threshold and width find the local maxima
-        that have a peak prominence that exceeds the threshold given.
-        INPUTS:
-            rmin = list of doubles to find peaks in
-            width = minimum cluster size
-            threshold = smallest peak prominence a peak/local maxima should have
-        OUTPUTS:
-            pks = index of peaks that have been found
-        '''
-    
-        maxs = argrelmax(np.array(rmin), order = self.min_cluster_size//8)
-        
-        widths = self.prom_widths(maxs[0])
-        
-        proms = self.peak_prom(maxs[0], rmin, widths)
-        
-        pks = []
-        chosen_proms = []
-        if threshold != 0:
-            for i in range(len(proms)):
-                if proms[i] > threshold:
-                    chosen_proms.append(proms[i])
-                    pks.append(maxs[0][i])
-        else:
-            pks = maxs[0]
-            chosen_proms = proms
-        return pks, chosen_proms
-    
-    def peak_prom(self, peaks, rmin, windows):
-        '''
-        Calculate the prominence for a given list of peaks within a list of doubles.
-        INPUTS:
-            peaks = list of integers indicating the index of the peaks within rmin
-            rmin = list of doubles
-            window = list of tuples containing left and right width for each peak
-        OUPUTS:
-            proms = list of peak prominence in the same ordering as the peaks were given
-        '''
-        
-        proms = []
-        
-        for i in range(len(peaks)):
-            proms.append(self.singular_peak_prominence(peaks[i], rmin, windows[i]))
-        
-        return proms
-    
-    def singular_peak_prominence(self, peak, rmin, window):
-        '''
-        Calculate the peak prominence for a given peak. Instead of taking the difference between the maximum and the highest minimum out of left or right we take the smallest 
-        minimum on each side. ILS also seeks to detect step changes, this change handles step changes to some extent.
-        INPUTS:
-            peak = index of of a local maximum to calculate peak prominence for
-            rmin = list of floats where the peak exists in
-            window = window size for the surroundings the peak should be compared to
-        OUTPUTS:
-            prominence = the prominence of the given peak (double)
-        '''
-        left_window = window[0]
-        right_window = window[1]
-        
-        sublst1 = rmin[max([peak - left_window, 0]):peak]
-        sublst2 = rmin[peak+1:min([peak + right_window, len(rmin)-1])]
-
-        maxim = max([max(sublst1), max(sublst2)])
-        
-        min1 = self.mintillmax(np.flip(sublst1, axis = 0), rmin[peak])
-        min2 = self.mintillmax(sublst2, rmin[peak])
-        
-        if min1 is None or min2 is None:
-            raise Exception("The peak is not a local maximum")
-        
-        minimum = min(min1, min2)
-        
-        return (rmin[peak] - minimum)
-    
-    def mintillmax(self, sublst, maxthreshold):
-        '''
-        Given a list and a threshold, find the minimum element until exceeding the threshold.
-        If the threshold is exceeded immediately return none as this is not a local maximum
-        INPUTS:
-            sublst = list to iterate through
-            maxthreshold = threshold that triggers the iteration to stop if exceeded
-        OUTPUTS:
-            minimum = minimum element found
-        '''
-        minimum = None
-        
-        for i in range(len(sublst)):
-            if sublst[i] > maxthreshold:
-                break
-            if minimum is None or sublst[i] < minimum:
-                minimum = sublst[i]
-
-        return minimum
-    
-    def moving_max(self, lst, window):
-        
-        mvmax = [max(lst[i:i+window]) for i in range(len(lst)-window)]
-        for i in range(window):
-            mvmax.append(mvmax[-1])
+        for i in range(maxs.shape[0]):
+            if maxs[i] < self.min_cluster_size or maxs[i] > len(rmin) - self.min_cluster_size: 
+                continue
+                
+            mean = np.mean(rmin[maxs[i] - self.min_cluster_size:maxs[i]])
+            standev = np.var(rmin[maxs[i] - self.min_cluster_size:maxs[i]]) ** 0.5
             
-        return mvmax
+            mean1 = np.mean(rmin[maxs[i]:maxs[i]+self.min_cluster_size])
+            standev1 = np.var(rmin[maxs[i]:maxs[i]+self.min_cluster_size]) ** 0.5
+            
+            signifdiff = rmin[maxs[i]] > mean + self.significance * standev
+            signifdiff1 = rmin[maxs[i]] > mean1 + self.significance * standev1
+            
+            if signifdiff or signifdiff1: 
+                num_standev.append(max((rmin[maxs[i]] - mean)/standev, (rmin[maxs[i]] - mean1)/standev1))
+                peaks.append(maxs[i])
+                
+        return peaks, num_standev
+        
+    def get_final(self, peaks, width_const, SD):
+    
+        width = width_const
+
+        fin_peaks = []
+        fin_SD = []
+        ind = 0
+        pks_temp = [peaks[0]]
+        SD_temp = [SD[0]]
+
+        for i in range(len(peaks)):
+            if i == len(peaks) - 1:
+                continue
+            if peaks[i+1] - peaks[i] < width:
+                pks_temp.append(peaks[i+1])
+                SD_temp.append(SD[i+1])
+                width = width - peaks[i+1] + peaks[i]
+            else:
+                fin_peaks.append(pks_temp)
+                fin_SD.append(SD_temp)
+                pks_temp = [peaks[i+1]]
+                SD_temp = [SD[i+1]]
+                width = width_const
+
+        fin_peaks.append(pks_temp)
+        fin_SD.append(SD_temp)
+
+        fin_ind = [np.argmax(i) for i in fin_SD]
+        fin_peaks = [fin_peaks[i][fin_ind[i]] for i in range(len(fin_ind))]
+
+        fin_max = [np.max(i) for i in fin_SD]
+
+        return fin_peaks, fin_max    
 
     def find_initial_points(self):
         '''
