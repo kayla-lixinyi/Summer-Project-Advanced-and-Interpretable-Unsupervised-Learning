@@ -103,7 +103,12 @@ class ILS():
         betweenMax = np.split(filtered, maxima)
         betweenIndex = np.split(index, maxima)  
         
-        minima = [(np.argpartition(betweenMax[i], 4)[:4] + 1 + betweenIndex[i][0]).tolist() for i in range(len(betweenMax))]
+        if self.min_cluster_size < 10:
+            num_labels = 1
+        else:
+            num_labels = 4
+        
+        minima = [(np.argpartition(betweenMax[i], num_labels)[:num_labels] + 1 + betweenIndex[i][0]).tolist() for i in range(len(betweenMax))]
 
         return minima
     
@@ -153,6 +158,8 @@ class ILS():
         fin_peaks = []
         fin_SD = []
         ind = 0
+        if len(peaks) == 0:
+            return [], []
         pks_temp = [peaks[0]]
         SD_temp = [SD[0]]
 
