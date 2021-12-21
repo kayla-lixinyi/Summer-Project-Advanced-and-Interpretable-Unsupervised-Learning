@@ -109,7 +109,8 @@ class ILS():
             num_labels = 4
         
         minima = [(np.argpartition(betweenMax[i], num_labels)[:num_labels] + 1 + betweenIndex[i][0]).tolist() for i in range(len(betweenMax))]
-
+        self.n_clusters = len(minima)
+        
         return minima
     
     def find_maxima_forward(self, rmin, pks, check_peak):
