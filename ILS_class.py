@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from scipy.signal import argrelmax
 from scipy.ndimage.filters import gaussian_filter1d
 from sklearn.metrics import pairwise_distances
@@ -252,6 +253,22 @@ class ILS():
         for i in range(len(self.rmin)-2):
             plt.plot([i, i+1], self.rmin[i:i+2], color = colour[self.data_set[self.indOrdering.astype(int)[i], -1].astype(int)], linewidth = 0.8)
         
+        plt.show()
+        
+    def rainbow_rmin(self):
+        
+        if self.data_set.shape[1] - 1 > 2:
+            data_set = np.concatenate((self.tSNE(), self.data_set[:, -1].reshape((-1,1))), axis = 1)
+        else:
+            data_set = self.data_set
+        
+        colours = cm.gist_rainbow(np.linspace(0, 1, len(self.rmin)))
+        for i in range(len(self.rmin)):
+            plt.scatter(data_set[:, 0].tolist()[self.indOrdering[i]], data_set[:, 1].tolist()[self.indOrdering[i]], color=colours[i], s =2)
+        plt.show()
+        
+        for i in range(len(self.rmin)-2):
+            plt.plot([i, i+1], self.rmin[i:i+2], color = colours[i], linewidth = 0.8)
         plt.show()
     
     def plot_labels(self):
