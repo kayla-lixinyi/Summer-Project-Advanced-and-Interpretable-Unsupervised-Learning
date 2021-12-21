@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import sys
-sys.path.append("..")
+sys.path.append(".")
 from ILS_class import ILS
 from scipy import ndimage
 
@@ -21,7 +21,7 @@ plt.style.use('ggplot')
 
 euclidean_distance = lambda data, point: np.sqrt(np.sum(np.power(data - point, 2), axis = 1).reshape((len(data), 1)))
 
-target = pd.read_csv(r"Artificial Data sets\target.csv", header=1)
+target = np.array(pd.read_csv(r"Testing\Artificial Data sets\target.csv", header=1))[:, :-1]
 
 
 class Test(unittest.TestCase):
@@ -34,7 +34,7 @@ class Test(unittest.TestCase):
         X, y = make_blobs(n_samples = 500, centers= 4, n_features=2,random_state=185)
         
         # Run the clustering algorithm
-        ils = ILS(n_clusters=4, min_cluster_size = 50, metric = 'euclidean', plot_rmin = False, sensitivity = 0.4)
+        ils = ILS(n_clusters=4, min_cluster_size = 50)
         ils.fit(X)
 
         # Plotting
@@ -50,7 +50,7 @@ class Test(unittest.TestCase):
         X, y = make_circles(n_samples=500, shuffle = True, noise = 0.05, factor = 0.5, random_state = 10)
         
         # Run the clustering algorithm
-        ils = ILS(n_clusters=2, min_cluster_size = 50, metric = 'euclidean', plot_rmin = False, sensitivity = 0.4)
+        ils = ILS(n_clusters=2, min_cluster_size = 50)
         print(type(X))
         ils.fit(X)
         
@@ -67,7 +67,7 @@ class Test(unittest.TestCase):
         X, y = make_moons(n_samples=300, shuffle = True, noise = 0.1, random_state = 10)
         
         # Run the clustering algorithm
-        ils = ILS(n_clusters=2, min_cluster_size = 100, metric = 'euclidean', plot_rmin = True, sensitivity = 0.4)
+        ils = ILS(n_clusters=2, min_cluster_size = 100)
         ils.fit(X)
         
         # Plotting
@@ -81,7 +81,7 @@ class Test(unittest.TestCase):
         X, y = make_blobs(n_samples = 500, centers= 4, n_features=2,random_state=185)
         
         # Run the clustering algorithm
-        ils = ILS(n_clusters=4, min_cluster_size = 50, metric = 'euclidean', plot_rmin = False, sensitivity = 0.4)
+        ils = ILS(n_clusters=4, min_cluster_size = 50)
         ils.fit(target)
 
         # Plotting

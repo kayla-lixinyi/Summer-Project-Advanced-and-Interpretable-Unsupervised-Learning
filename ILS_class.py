@@ -100,10 +100,10 @@ class ILS():
         filtered = gaussian_filter1d(self.rmin, max(2, self.min_cluster_size//32))
         
         betweenMax = np.split(filtered, maxima)
-        betweenIndex = np.split(index, maxima)        
+        betweenIndex = np.split(index, maxima)  
         
-        minima = [np.argmin(betweenMax[i]) + betweenIndex[i][0] for i in range(len(betweenMax))]
-        
+        minima = [(np.argpartition(betweenMax[i], 4)[:4] + 1 + betweenIndex[i][0]).tolist() for i in range(len(betweenMax))]
+
         return minima
     
     def find_maxima_forward(self, rmin, pks, check_peak):
@@ -196,10 +196,16 @@ class ILS():
 
         # label them in the data_set
         for i in labelled_points:
-            self.data_set[self.indOrdering[i], -1] = counter
+            for j in i:
+                self.data_set[self.indOrdering[j], -1] = counter
             counter += 1
+        
+        labels = []
+        
+        for i in labelled_points:
+            labels = labels + i
 
-        labelled_points = self.indOrdering[labelled_points]
+        labelled_points = self.indOrdering[labels]
 
         unlabelled_points = [i for i in range(self.data_set.shape[0]) if not i in labelled_points]
 
