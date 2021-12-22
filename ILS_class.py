@@ -8,6 +8,13 @@ from sklearn.metrics import pairwise_distances
 from sklearn.metrics.pairwise import distance_metrics
 from sklearn.manifold import TSNE
 
+# Bokeh
+from bokeh.plotting import figure, show
+from bokeh.io import show
+from bokeh.palettes import Viridis256
+from bokeh.plotting import figure
+from bokeh.transform import linear_cmap
+
 class ILS():
     """ Iterative Label Spreading
 
@@ -278,6 +285,27 @@ class ILS():
         for i in range(len(self.rmin)-2):
             plt.plot([i, i+1], self.rmin[i:i+2], color = colours[i], linewidth = 0.8)
         plt.show()
+        
+     def rainbow_rmin_two(self):
+        
+        if self.data_set.shape[1] - 1 > 2:
+            data_set = np.concatenate((self.tSNE(), self.data_set[:, -1].reshape((-1,1))), axis = 1)
+        else:
+            data_set = self.data_set
+            
+        mapper = linear_cmap(field_name="y", palette=Viridis256, low=min(self.rmin), high=max(self.rmin))
+        # colors = ["#%02x%02x%02x" % (255, int(round(value * 255 / 100)), 255) for value in self.rmin]
+
+        # create plot
+        p = figure(width=500, height=250)
+        
+        x = list(range(0, len(self.rmin)))
+        
+        # create circle renderer with color mapper
+        line = p.line(x, self.rmin, line_color="blue", line_width=1)
+        p.circle(x, self.rmin, color=mapper, size=1)
+        
+        show(p)
     
     def plot_labels(self):
         
