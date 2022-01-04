@@ -11,7 +11,7 @@ from sklearn.manifold import TSNE
 # Bokeh
 from bokeh.plotting import figure, show
 from bokeh.io import show
-from bokeh.palettes import Viridis256
+from bokeh.palettes import Viridis256, Turbo256
 from bokeh.plotting import figure
 from bokeh.transform import linear_cmap
 
@@ -293,7 +293,7 @@ class ILS():
         else:
             data_set = self.data_set
             
-        mapper = linear_cmap(field_name="y", palette=Viridis256, low=min(self.rmin), high=max(self.rmin))
+        mapper = linear_cmap(field_name="x", palette=Turbo256, low=0, high=len(self.rmin))
         # colors = ["#%02x%02x%02x" % (255, int(round(value * 255 / 100)), 255) for value in self.rmin]
 
         # create plot
@@ -302,7 +302,7 @@ class ILS():
         x = list(range(0, len(self.rmin)))
         
         # create circle renderer with color mapper
-        line = p.line(x, self.rmin, line_color="blue", line_width=1)
+        line = p.line(x, self.rmin, line_color="grey", line_width=1)
         p.circle(x, self.rmin, color=mapper, size=1)
         
         show(p)
