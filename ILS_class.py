@@ -11,7 +11,7 @@ from sklearn.manifold import TSNE
 # Bokeh
 from bokeh.plotting import figure, show
 from bokeh.io import show
-from bokeh.palettes import Viridis256
+from bokeh.palettes import Viridis256, Turbo256
 from bokeh.plotting import figure
 from bokeh.transform import linear_cmap
 
@@ -97,6 +97,9 @@ class ILS():
         pks, n_SD = self.split_disconnected(self.rmin, pks)
         
         maxima, max_SD = self.get_final(pks, self.min_cluster_size//4 * 3, n_SD)
+        
+        self.maxima = maxima
+        self.maxima_SD = max_SD
         
         if not self.n_clusters is None:
             try:
@@ -286,14 +289,14 @@ class ILS():
             plt.plot([i, i+1], self.rmin[i:i+2], color = colours[i], linewidth = 0.8)
         plt.show()
         
-     def rainbow_rmin_two(self):
+    def rainbow_rmin_two(self):
         
         if self.data_set.shape[1] - 1 > 2:
             data_set = np.concatenate((self.tSNE(), self.data_set[:, -1].reshape((-1,1))), axis = 1)
         else:
             data_set = self.data_set
             
-        mapper = linear_cmap(field_name="y", palette=Viridis256, low=min(self.rmin), high=max(self.rmin))
+        mapper = linear_cmap(field_name="x", palette=Turbo256, low=0, high=len(self.rmin))
         # colors = ["#%02x%02x%02x" % (255, int(round(value * 255 / 100)), 255) for value in self.rmin]
 
         # create plot
