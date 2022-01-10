@@ -305,7 +305,7 @@ class ILS():
         x = list(range(0, len(self.rmin)))
         
         # create circle renderer with color mapper
-        line = p.line(x, self.rmin, line_color="blue", line_width=1)
+        line = p.line(x, self.rmin, line_color="grey", line_width=1)
         p.circle(x, self.rmin, color=mapper, size=1)
         
         show(p)
