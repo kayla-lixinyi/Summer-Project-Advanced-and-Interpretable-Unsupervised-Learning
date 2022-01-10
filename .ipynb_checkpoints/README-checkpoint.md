@@ -23,7 +23,21 @@ Why ILS? ILS does not require the input of the number of clusters or a threshold
 	The number of clusters can then be automatically extracted by identifying the peaks (due to density drops between clusters) to divide the plot into n regions
 - Step 3: interative relabling
 	One point relabeled in each region (preferably at the minima) to run ILS again to obtain a fully labeled data set with n clusters defined
-    
+
+## Parameter Selection
+
+ - min_cluster_size
+ 
+ This value should be a underestimate of the minimum cluster size. Excessively small values will lead to poor performance
+ 
+ - n_clusters (default is not required)
+ 
+ Optional parameter that specifies the number of cluster to be found. There is no guarentee that the algorithm will find them. If the user is certain of the number of clusters they should specify the number and also lower the significance parameter mentioned below
+ 
+ - significance (default = 2.56)
+ 
+ The significance is the number of standard deviations a potential segmentation point should exceed the mean of its surroundings. 
+
 ## Manual Segmentation
 
 If the user wants to specify segmentation manually then they can use the manual segmentation function.
@@ -58,8 +72,6 @@ An example is shown in Testing/ils_tests_plots.ipynb
  Good clustering
  
  <img src="/ReadMe_Images/Correct_Segmentation.png" alt="Good Clustering" width="200"/>
- 
-![Good clustering](/ReadMe_Images/Correct_Segmentation.png)
 
  Poor Clustering
  
