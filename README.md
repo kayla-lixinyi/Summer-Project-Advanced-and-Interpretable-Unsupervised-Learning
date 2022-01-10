@@ -23,16 +23,30 @@ Why ILS? ILS does not require the input of the number of clusters or a threshold
 	The number of clusters can then be automatically extracted by identifying the peaks (due to density drops between clusters) to divide the plot into n regions
 - Step 3: interative relabling
 	One point relabeled in each region (preferably at the minima) to run ILS again to obtain a fully labeled data set with n clusters defined
-  
-*Note: The most subjective step is separating the peaks from the noise; ___add current peak finding method over here___*
+    
+## Manual Segmentation
 
-## Tradeoffs
-The current weakness of ILS is the scaling with number of points (as opposed to number of dimensions). Since the ILS algorithm runs the iterative label spreading method twice (first run to generate labels and second run to check labeling results from the first run), the size of the dataset would affect the scaling of the algorithm.
+If the user wants to specify segmentation manually then they can use the manual segmentation function.
 
+1. View the rmin plot to identify regions to segment 
 
-## ILS Evaluation Class Use
+```
+    ils = ILS().initial_spread(X)
+    ils.plot_rmin()
+```
+2. Once the user has seen the plot he passes in the indexs (x1, x2, x3, ...) this will split the desired segments
+```
+    ils.manual_segmentation([x1, x2, x3])
+    ils.plot_labels()
+```
 
-Given a clustering this class provides tools to identify clustering mistakes. 
+To view examples of this see Testing/ILS_tests_plots.ipynb notebook
+
+## Semi-supervised Learning, Label Spreading
+
+If the user already has some labelled points then they can perform the spreading once with `ILS.label_sprd_semi_sup(labelled_points, unlabelled_points)`.
+
+An example is shown in Testing/ils_tests_plots.ipynb
 
 ## Clustering Performance/Trouble Shooting
  - Identifying quality of clustering.
@@ -62,4 +76,9 @@ Given a clustering this class provides tools to identify clustering mistakes.
  - Low density cluster connected to high density cluster
  
  In these cases the segmentation method may have correctly segmented the distance plot but the spreading has not performed well. (Need to add another git repository)
+ 
+ *Note: The most subjective step is separating the peaks from the noise; ___add current peak finding method over here___*
+
+## Tradeoffs
+The current weakness of ILS is the scaling with number of points (as opposed to number of dimensions). Since the ILS algorithm runs the iterative label spreading method twice (first run to generate labels and second run to check labeling results from the first run), the size of the dataset would affect the scaling of the algorithm.
 

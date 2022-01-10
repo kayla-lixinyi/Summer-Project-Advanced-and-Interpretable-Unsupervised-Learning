@@ -175,20 +175,24 @@ class ILS():
 
         return self
     
-    def initial_labels(labelled, unlabelled):
+    def label_sprd_semi_sup(self, labelled, unlabelled):
         
         n_init_points = np.array(labelled).shape[0]
         n_rest = np.array(unlabelled).shape[0]
         
-        self.data_set = np.concatenate((np.array(labelled), np.array(unlabelled)), axis = 0)
+        unlabelled = np.concatenate((np.array(unlabelled), np.zeros((n_rest, 1))), axis = 1)
+        
+        self.data_set = np.concatenate((np.array(labelled), unlabelled), axis = 0)
         labelled = [i for i in range(n_init_points)]
         unlabelled = [i + n_init_points for i in range(n_rest)]
         
-        label_spreading = self.label_spreading(labelled, unlabelled)
+        label_spreading = self.label_spreading(labelled, unlabelled, first_run = False)
         
         return self
     
     def initial_spread(self, X, fit = False):
+        
+        self.rmin = []
         
         self.data_set = np.concatenate((np.array(X), np.zeros((X.shape[0],1))), axis = 1)
         self.rmin = []
@@ -201,7 +205,7 @@ class ILS():
         
         unlabelled = [i for i in range(self.data_set.shape[0]-1)] # step 1
         
-        label_spreading = self.label_spreading([self.data_set.shape[0]-1], unlabelled)
+        label_spreading = self.label_spreading([self.data_set.shape[0]-1], unlabelled, first_run = True)
         
         if fit == False:
             self.data_set = np.delete(self.data_set, self.data_set.shape[0]-1, 0)
@@ -224,7 +228,7 @@ class ILS():
         betweenMax = np.split(filtered, inds)
         betweenIndex = np.split(index, inds) 
         
-        minima = [np.argmin(betweenMax[i]) + betweenIndex[i][0] for i in range(len(betweenMax))]
+        minima = [np.argmin(betweenMax[i]) + betweenIndex[i][0] + 1 for i in range(len(betweenMax))]
         
         labelled, unlabelled = self.find_initial_points(minima)
         
@@ -470,9 +474,7 @@ class ILS():
         newIndex = oldIndex[outID]
         if first_run:
             self.indOrdering = indOrdering
-        
-        #labelled = labelled[np.argsort(indOrdering), :]
-        
+                
         # ID of point label was spread from
         closest = np.concatenate((np.array(newIndex).reshape((-1, 1)), np.array(closeID).reshape((-1, 1))), axis=1)      
 
@@ -485,7 +487,10 @@ class ILS():
         
         if not first_run:
             self.data_set = np.delete(self.data_set, self.data_set.shape[0] - 1, 0)
-            self.rmin = self.rmin[1:]
-            self.indOrdering = self.indOrdering[1:]
+            try:
+                self.rmin = self.rmin[1:]
+                self.indOrdering = self.indOrdering[1:]
+            except:
+                pass
             
         return closest

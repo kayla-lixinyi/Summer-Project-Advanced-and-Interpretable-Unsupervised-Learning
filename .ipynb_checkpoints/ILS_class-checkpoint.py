@@ -17,34 +17,35 @@ from bokeh.transform import linear_cmap
 
 class ILS():
     """ Iterative Label Spreading
+
     Parameters
     ----------
+
     n_clusters : int, default=None
         The number of clusters expected to be identified
         from given dataset.
+
     min_cluster_size : int, default=None
         The minimum number of data points to be considered as a cluster.
+
     metric : String, default='euclidean'
         The valid metric for pairwise_distance.
         Must be a metric listed in pairwise.PAIRWISE_DISTANCE_FUNCTIONS or
         an option allowed by scipy.spatial.distance.pdist
-        
-    significance : float, default = 3.4
+
     Attributes
     ----------
+
     dataset : ndarray of shape(n_samples, n_features)
         Transform input dataset into numpy ndarray
+
     rmin : ndarray of shape(n_samples, )
         The R_min distance of each iteration
+
     Examples
     ---------
-    >>> from ILS_class import ILS
-    >>> import numpy as np
-    >>> from sklearn.datasets import *
-    >>> X, y = make_blobs(n_samples = 500, centers= 4, n_features=2,random_state=185)
-    >>> ils = ILS(n_clusters=4, min_cluster_size = 50)
-    >>> ils.fit(X)
-    >>> 
+    ##to be added after implementation of find peaks algorithm
+
     """
     def __init__(self, n_clusters = None, min_cluster_size = None, metric = 'euclidean', significance = 3.4):
 
@@ -57,19 +58,15 @@ class ILS():
             self.n_cluster_spec = False
 
     def fit(self, X):
-         """
-        Compute Iterative Labeling Spreading. Run iteravtive label spreading first to identify peaks to find points of highest density.
+        '''
+        Main ILS function. Run iteravtive label spreading first to identify peaks to find points of highest density.
         Finally label points given the initial points found from points of highest density.
-        
-        Parameters
-        ----------
-        X : {array-like, dataframe} of shape (n_samples, n_features)
-        
-        Returns
-        -------
-        self : object
-            Fitted estimator.
-        """
+        INPUT:
+            X = data set to be clustered
+                numpy 2D array or pandas data frame
+        OUTPUT:
+            self = returns the ILS object where clustering results are stored.
+        '''
 
         if self.min_cluster_size is None and self.n_clusters is None:
             self.min_cluster_size = int (0.05 * X.shape[0])
@@ -85,7 +82,7 @@ class ILS():
         return self
     
     def find_minima(self):
-        """ Finds the local minima of the current Rmin plot"""
+        
         index = np.arange(len(self.rmin))
         
         pks = self.find_maxima_forward(self.rmin, [], 0)
@@ -178,20 +175,24 @@ class ILS():
 
         return self
     
-    def initial_labels(labelled, unlabelled):
+    def label_sprd_semi_sup(self, labelled, unlabelled):
         
         n_init_points = np.array(labelled).shape[0]
         n_rest = np.array(unlabelled).shape[0]
         
-        self.data_set = np.concatenate((np.array(labelled), np.array(unlabelled)), axis = 0)
+        unlabelled = np.concatenate((np.array(unlabelled), np.zeros((n_rest, 1))), axis = 1)
+        
+        self.data_set = np.concatenate((np.array(labelled), unlabelled), axis = 0)
         labelled = [i for i in range(n_init_points)]
         unlabelled = [i + n_init_points for i in range(n_rest)]
         
-        label_spreading = self.label_spreading(labelled, unlabelled)
+        label_spreading = self.label_spreading(labelled, unlabelled, first_run = False)
         
         return self
     
     def initial_spread(self, X, fit = False):
+        
+        self.rmin = []
         
         self.data_set = np.concatenate((np.array(X), np.zeros((X.shape[0],1))), axis = 1)
         self.rmin = []
@@ -204,7 +205,7 @@ class ILS():
         
         unlabelled = [i for i in range(self.data_set.shape[0]-1)] # step 1
         
-        label_spreading = self.label_spreading([self.data_set.shape[0]-1], unlabelled)
+        label_spreading = self.label_spreading([self.data_set.shape[0]-1], unlabelled, first_run = True)
         
         if fit == False:
             self.data_set = np.delete(self.data_set, self.data_set.shape[0]-1, 0)
@@ -227,7 +228,7 @@ class ILS():
         betweenMax = np.split(filtered, inds)
         betweenIndex = np.split(index, inds) 
         
-        minima = [np.argmin(betweenMax[i]) + betweenIndex[i][0] for i in range(len(betweenMax))]
+        minima = [np.argmin(betweenMax[i]) + betweenIndex[i][0] + 1 for i in range(len(betweenMax))]
         
         labelled, unlabelled = self.find_initial_points(minima)
         
@@ -273,16 +274,14 @@ class ILS():
         return fin_peaks, fin_max    
 
     def find_initial_points(self, labelled_points = None):
-        """
+        '''
         Finds the points of highest density within the clusters found in the initial run and labels them in seperate classes.
-        Returns
-        -------
-        labelled_points : list
-            indices of labelled points (points of highest density)
-                
-        unlabelled_points : list
-            indices of unlabelled points (points of highest density)
-        """
+        OUTPUTS:
+            labelled_points: indices of labelled points (points of highest density)
+                list of integers
+            unlabelled_points: indices of unlabelled points (points of highest density)
+                list of integers
+        '''
 
         # get points of maximum density
         if labelled_points is None:
@@ -319,18 +318,13 @@ class ILS():
         
     
     def predict(self, points):
-        """ Predict the closest cluster each sample in points belongs to.
-        
-        Parameters
-        ----------
-        points : nd array of shape (n_samples, n_features)
-            Data to predict.
-            
-        Returns
-        -------
-        labels : nd array of shape (n_samples, )
-            Predicted index of the cluster each given sample belongs to.
-        """
+        '''
+        predict takes in an array of points and returns an 1D array of there corresponding labels
+        INPUTS:
+            points = 2D array of floats
+        OUTPUTS:
+            labels = 1D array of labels in the same order as th points given.
+        '''
         
         D = pairwise_distances(self.data_set[:, :-1], 
                              points,
@@ -480,9 +474,7 @@ class ILS():
         newIndex = oldIndex[outID]
         if first_run:
             self.indOrdering = indOrdering
-        
-        #labelled = labelled[np.argsort(indOrdering), :]
-        
+                
         # ID of point label was spread from
         closest = np.concatenate((np.array(newIndex).reshape((-1, 1)), np.array(closeID).reshape((-1, 1))), axis=1)      
 
@@ -495,7 +487,10 @@ class ILS():
         
         if not first_run:
             self.data_set = np.delete(self.data_set, self.data_set.shape[0] - 1, 0)
-            self.rmin = self.rmin[1:]
-            self.indOrdering = self.indOrdering[1:]
+            try:
+                self.rmin = self.rmin[1:]
+                self.indOrdering = self.indOrdering[1:]
+            except:
+                pass
             
         return closest
