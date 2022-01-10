@@ -32,7 +32,11 @@ class ILS_Evaluation():
         each element in the list is a 2D array of points
 
     Examples
+<<<<<<< HEAD
+    ---------
+=======
     --------
+>>>>>>> refs/remotes/origin/main
     #generate clusters
     a = np.random.uniform(0, 1, (200, 2))
     b = np.random.uniform(2, 3, (200, 2))
@@ -48,6 +52,8 @@ class ILS_Evaluation():
     ils_eval = ILS_Evaluation(data_set, min_cluster_size = 100)
     ils_eval.plot_cluster_rmin()
     ils_eval.find_within_clusters()
+<<<<<<< HEAD
+=======
     
     # now try with incorrect clustering
     # generate clusters
@@ -65,6 +71,7 @@ class ILS_Evaluation():
     ils_eval = ILS_Evaluation(data_set, min_cluster_size = 100)
     ils_eval.plot_cluster_rmin()
     ils_eval.find_within_clusters()
+>>>>>>> refs/remotes/origin/main
 
     """
     
