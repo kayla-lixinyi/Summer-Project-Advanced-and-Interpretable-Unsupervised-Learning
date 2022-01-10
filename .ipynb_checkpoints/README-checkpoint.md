@@ -57,13 +57,13 @@ An example is shown in Testing/ils_tests_plots.ipynb
  
  Good clustering
  
-![Good clustering](ReadMe Images/Correct Segmentation.png)
+![Good clustering](/ReadMe_Images/Correct_Segmentation.png)
 
  Poor Clustering
  
-![Poor clustering](ReadMe Images/Incorrect Segmentation.png)
+![Poor clustering](/ReadMe_Images/Incorrect_Segmentation.png)
 
-![Poor clustering](ReadMe Images/Incorrect Segmentation2.png)
+![Poor clustering](/ReadMe_Images/Incorrect_Segmentation2.png)
 
  - Large differences in cluster size
  
