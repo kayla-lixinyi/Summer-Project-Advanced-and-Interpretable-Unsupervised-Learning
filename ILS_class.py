@@ -32,6 +32,8 @@ class ILS():
         The valid metric for pairwise_distance.
         Must be a metric listed in pairwise.PAIRWISE_DISTANCE_FUNCTIONS or
         an option allowed by scipy.spatial.distance.pdist
+        
+    significance : float, default = 3.4
 
     Attributes
     ----------
@@ -44,10 +46,16 @@ class ILS():
 
     Examples
     ---------
-    ##to be added after implementation of find peaks algorithm
+    >>> from ILS_class import ILS
+    >>> import numpy as np
+    >>> from sklearn.datasets import *
+    >>> X, y = make_blobs(n_samples = 500, centers= 4, n_features=2,random_state=185)
+    >>> ils = ILS(n_clusters=4, min_cluster_size = 50)
+    >>> ils.fit(X)
+    >>> 
 
     """
-    def __init__(self, n_clusters = None, min_cluster_size = None, metric = 'euclidean', significance = 3.4):
+    def __init__(self, n_clusters=None, min_cluster_size=None, metric='euclidean', significance=3.4):
 
         self.n_clusters = n_clusters # need to calculate defaults based on data set input
         self.min_cluster_size = min_cluster_size
@@ -55,15 +63,19 @@ class ILS():
         self.significance = significance
 
     def fit(self, X):
-        '''
-        Main ILS function. Run iteravtive label spreading first to identify peaks to find points of highest density.
+        """
+        Compute Iterative Labeling Spreading. Run iteravtive label spreading first to identify peaks to find points of highest density.
         Finally label points given the initial points found from points of highest density.
-        INPUT:
-            X = data set to be clustered
-                numpy 2D array or pandas data frame
-        OUTPUT:
-            self = returns the ILS object where clustering results are stored.
-        '''
+        
+        Parameters
+        ----------
+        X : {array-like, dataframe} of shape (n_samples, n_features)
+        
+        Returns
+        -------
+        self : object
+            Fitted estimator.
+        """
 
         if self.min_cluster_size is None and self.n_clusters is None:
             self.min_cluster_size = int (0.05 * X.shape[0])
@@ -85,7 +97,7 @@ class ILS():
         return self
     
     def find_minima(self):
-        
+        """ Finds the local minima of the current Rmin plot"""
         index = np.arange(len(self.rmin))
         
         pks = self.find_maxima_forward(self.rmin, [], 0)
@@ -103,7 +115,7 @@ class ILS():
                 inds = np.argsort(max_SD)[-self.n_clusters+1:]
                 maxima = np.sort([maxima[i] for i in inds]).tolist()
             except:
-                raise Exception("Only {} clusters were found. If you do not know how many clusters there are do not specify a number")
+                raise Exception("Only {} clusters were found. If you do not know how many clusters there are, do not specify a number")
         
         filtered = gaussian_filter1d(self.rmin, max(2, self.min_cluster_size//32))
         
@@ -196,14 +208,16 @@ class ILS():
         return fin_peaks, fin_max    
 
     def find_initial_points(self):
-        '''
+        """
         Finds the points of highest density within the clusters found in the initial run and labels them in seperate classes.
-        OUTPUTS:
-            labelled_points: indices of labelled points (points of highest density)
-                list of integers
-            unlabelled_points: indices of unlabelled points (points of highest density)
-                list of integers
-        '''
+        Returns
+        -------
+        labelled_points : list
+            indices of labelled points (points of highest density)
+                
+        unlabelled_points : list
+            indices of unlabelled points (points of highest density)
+        """
 
         # get points of maximum density
         labelled_points = self.find_minima()
@@ -245,13 +259,18 @@ class ILS():
         
     
     def predict(self, points):
-        '''
-        predict takes in an array of points and returns an 1D array of there corresponding labels
-        INPUTS:
-            points = 2D array of floats
-        OUTPUTS:
-            labels = 1D array of labels in the same order as th points given.
-        '''
+        """ Predict the closest cluster each sample in points belongs to.
+        
+        Parameters
+        ----------
+        points : nd array of shape (n_samples, n_features)
+            Data to predict.
+            
+        Returns
+        -------
+        labels : nd array of shape (n_samples, )
+            Predicted index of the cluster each given sample belongs to.
+        """
         
         D = pairwise_distances(self.data_set[:, :-1], 
                              points,
@@ -286,7 +305,7 @@ class ILS():
             plt.plot([i, i+1], self.rmin[i:i+2], color = colours[i], linewidth = 0.8)
         plt.show()
         
-     def rainbow_rmin_two(self):
+    def rainbow_rmin_two(self):
         
         if self.data_set.shape[1] - 1 > 2:
             data_set = np.concatenate((self.tSNE(), self.data_set[:, -1].reshape((-1,1))), axis = 1)
