@@ -53,6 +53,9 @@ class ILS():
         self.min_cluster_size = min_cluster_size
         self.metric = metric
         self.significance = significance
+        
+        if n_clusters is None:
+            self.n_cluster_spec = False
 
     def fit(self, X):
         '''
@@ -68,15 +71,9 @@ class ILS():
         if self.min_cluster_size is None and self.n_clusters is None:
             self.min_cluster_size = int (0.05 * X.shape[0])
         elif self.min_cluster_size is None:
-            self.min_cluster_size = int (X.shape[0]/(self.n_clusters * 2)) #currently assumes maximum of 20 clusters
+            self.min_cluster_size = int (X.shape[0]/(self.n_clusters * 2)) 
 
-        self.data_set = np.concatenate((np.array(X), np.zeros((X.shape[0],1))), axis = 1)
-        self.rmin = []
-
-        self.data_set[0, X.shape[1]] = 1 #initialise first label
-        unlabelled = [i + 1 for i in range(X.shape[0] - 1)] # step 1
-        
-        label_spreading = self.label_spreading([0], unlabelled)
+        self.initial_spread(X, fit = True)
         
         new_centers, new_unlabelled = self.find_initial_points() # step 2
         
@@ -88,15 +85,12 @@ class ILS():
         
         index = np.arange(len(self.rmin))
         
-        pks = self.find_maxima_forward(self.rmin, [], 0)
-        reved = self.find_maxima_forward(self.rmin[::-1], [], 0)
-        non_rev = [len(self.rmin) - reved[i] - 1 for i in range(len(reved))]
-        pks = pks + non_rev[::-1]
-        pks = np.sort(pks)
-        
-        pks, n_SD = self.split_disconnected(self.rmin, pks)
+        pks, n_SD = self.possible_points(self.rmin)
         
         maxima, max_SD = self.get_final(pks, self.min_cluster_size//4 * 3, n_SD)
+        
+        self.maxima = maxima
+        self.maxima_SD = max_SD
         
         if not self.n_clusters is None:
             try:
@@ -110,54 +104,126 @@ class ILS():
         betweenMax = np.split(filtered, maxima)
         betweenIndex = np.split(index, maxima)  
         
-        if self.min_cluster_size < 10:
-            num_labels = 1
-        else:
-            num_labels = 4
-        
-        minima = [(np.argpartition(betweenMax[i], num_labels)[:num_labels] + 1 + betweenIndex[i][0]).tolist() for i in range(len(betweenMax))]
+        minima = [np.argmin(betweenMax[i]) + betweenIndex[i][0]+1 for i in range(len(betweenMax))]
         self.n_clusters = len(minima)
         
         return minima
     
-    def find_maxima_forward(self, rmin, pks, check_peak):
-    
-        if check_peak + self.min_cluster_size > len(rmin) - 1:
-            return pks
-
-        sublst = rmin[check_peak:check_peak + self.min_cluster_size]
-
-        maxind = np.argmax(sublst)
-
-        if maxind == 0:
-            pks.append(check_peak)
-            return self.find_maxima_forward(rmin, pks, check_peak+1)
-        else:
-            return self.find_maxima_forward(rmin, pks, check_peak+1)
-    
-    def split_disconnected(self, rmin, maxs):
-
-        peaks = []
-        num_standev = []
+    def possible_points(self, rmin):
         
-        for i in range(maxs.shape[0]):
-            if maxs[i] < self.min_cluster_size or maxs[i] > len(rmin) - self.min_cluster_size: 
+        num_standev = []
+        peaks =[]
+        
+        for i in range(len(rmin) - 2 * self.min_cluster_size):
+            
+            i = i+self.min_cluster_size
+            
+            sublstB = rmin[i:i + self.min_cluster_size]
+            sublstA = rmin[i-self.min_cluster_size+1:i+1]
+            
+            maxindB = np.argmax(sublstB)
+            maxindA = np.argmax(sublstA)
+            
+            if maxindB != 0 and maxindA != self.min_cluster_size - 1:
                 continue
                 
-            mean = np.mean(rmin[maxs[i] - self.min_cluster_size:maxs[i]])
-            standev = np.var(rmin[maxs[i] - self.min_cluster_size:maxs[i]]) ** 0.5
+            mean = np.mean(sublstB)
+            standev = np.var(sublstB) ** 0.5
             
-            mean1 = np.mean(rmin[maxs[i]:maxs[i]+self.min_cluster_size])
-            standev1 = np.var(rmin[maxs[i]:maxs[i]+self.min_cluster_size]) ** 0.5
+            mean1 = np.mean(sublstA)
+            standev1 = np.var(sublstA) ** 0.5
             
-            signifdiff = rmin[maxs[i]] > mean + self.significance * standev
-            signifdiff1 = rmin[maxs[i]] > mean1 + self.significance * standev1
+            signifdiff = rmin[i] > mean + self.significance * standev
+            signifdiff1 = rmin[i] > mean1 + self.significance * standev1
             
             if signifdiff or signifdiff1: 
-                num_standev.append(max((rmin[maxs[i]] - mean)/standev, (rmin[maxs[i]] - mean1)/standev1))
-                peaks.append(maxs[i])
-                
+                num_standev.append(max((rmin[i] - mean)/standev, (rmin[i] - mean1)/standev1))
+                peaks.append(i)
+            
         return peaks, num_standev
+    
+    def new_param_fit(self, min_cluster_size = None, n_clusters = None, significance = None):
+        '''
+        Allow the user to try segmentation with different parameters without having to run the first step again
+        '''
+        
+        if (min_cluster_size, n_clusters, significance) == (None, None, None):
+            raise Exception("No new Parameters were given")
+        elif not min_cluster_size is None:
+            self.min_cluster_size = min_cluster_size
+            
+        self.n_clusters = n_clusters
+            
+        if not significance is None:
+            self.significance = significance # if nothing is specified re-use old value
+        
+        new_centers, new_unlabelled = self.find_initial_points() # step 2
+        
+        label_spreading = self.label_spreading(new_centers, new_unlabelled, first_run = False) #step 3
+
+        return self
+    
+    def label_sprd_semi_sup(self, labelled, unlabelled):
+        
+        n_init_points = np.array(labelled).shape[0]
+        n_rest = np.array(unlabelled).shape[0]
+        
+        unlabelled = np.concatenate((np.array(unlabelled), np.zeros((n_rest, 1))), axis = 1)
+        
+        self.data_set = np.concatenate((np.array(labelled), unlabelled), axis = 0)
+        labelled = [i for i in range(n_init_points)]
+        unlabelled = [i + n_init_points for i in range(n_rest)]
+        
+        label_spreading = self.label_spreading(labelled, unlabelled, first_run = False)
+        
+        return self
+    
+    def initial_spread(self, X, fit = False):
+        
+        self.rmin = []
+        
+        self.data_set = np.concatenate((np.array(X), np.zeros((X.shape[0],1))), axis = 1)
+        self.rmin = []
+        
+        centre_mass = np.mean(self.data_set, axis = 0)
+        
+        self.data_set = np.concatenate((self.data_set, centre_mass.reshape((1, -1))), axis = 0)
+        
+        self.data_set[self.data_set.shape[0] - 1, -1] = 1
+        
+        unlabelled = [i for i in range(self.data_set.shape[0]-1)] # step 1
+        
+        label_spreading = self.label_spreading([self.data_set.shape[0]-1], unlabelled, first_run = True)
+        
+        if fit == False:
+            self.data_set = np.delete(self.data_set, self.data_set.shape[0]-1, 0)
+        
+        return self
+    
+    def manual_segmentation(self, inds):
+        
+        if len(inds) == 0:
+            raise Exception("No segmentation implies that all the data belongs to the same cluster, ILS is not required")
+        
+        if self.rmin == []:
+            raise Exception("The initial label spreading has not been completed, please run initial_spread")
+            
+        self.min_cluster_size = np.min([inds[i] - inds[i-1] if i != 0 else inds[i] for i in range(len(inds))])
+            
+        index = np.arange(len(self.rmin))
+        filtered = gaussian_filter1d(self.rmin, max(2, self.min_cluster_size//16))
+            
+        betweenMax = np.split(filtered, inds)
+        betweenIndex = np.split(index, inds) 
+        
+        minima = [np.argmin(betweenMax[i]) + betweenIndex[i][0] + 1 for i in range(len(betweenMax))]
+        
+        labelled, unlabelled = self.find_initial_points(minima)
+        
+        label_spreading = self.label_spreading(labelled, unlabelled, first_run = False)
+        
+        return self
+    
         
     def get_final(self, peaks, width_const, SD):
     
@@ -195,7 +261,7 @@ class ILS():
 
         return fin_peaks, fin_max    
 
-    def find_initial_points(self):
+    def find_initial_points(self, labelled_points = None):
         '''
         Finds the points of highest density within the clusters found in the initial run and labels them in seperate classes.
         OUTPUTS:
@@ -206,22 +272,17 @@ class ILS():
         '''
 
         # get points of maximum density
-        labelled_points = self.find_minima()
+        if labelled_points is None:
+            labelled_points = self.find_minima()
 
         counter = 1
 
         # label them in the data_set
         for i in labelled_points:
-            for j in i:
-                self.data_set[self.indOrdering[j], -1] = counter
+            self.data_set[self.indOrdering[i], -1] = counter
             counter += 1
-        
-        labels = []
-        
-        for i in labelled_points:
-            labels = labels + i
-
-        labelled_points = self.indOrdering[labels]
+            
+        labelled_points = [self.indOrdering[i] for i in labelled_points]
 
         unlabelled_points = [i for i in range(self.data_set.shape[0]) if not i in labelled_points]
 
@@ -262,12 +323,20 @@ class ILS():
         
         return self.data_set[label_points, -1]
     
+    def plot_rmin(self):
+        
+        plt.plot(self.rmin)
+        plt.xlabel("Iteration")
+        plt.ylabel("Rmin")
+        plt.show()
+    
     def coloured_rmin(self):
         colour = ['red', 'blue', 'gray', 'black', 'orange', 'purple', 'green', 'yellow', 'brown', 'red', 'blue', 'gray', 'black', 'orange', 'purple', 'green', 'yellow', 'brown']
         
         for i in range(len(self.rmin)-2):
             plt.plot([i, i+1], self.rmin[i:i+2], color = colour[self.data_set[self.indOrdering.astype(int)[i], -1].astype(int)], linewidth = 0.8)
-        
+        plt.xlabel("Iteration Number")
+        plt.ylabel("Rmin")
         plt.show()
         
     def rainbow_rmin(self):
@@ -284,9 +353,11 @@ class ILS():
         
         for i in range(len(self.rmin)-2):
             plt.plot([i, i+1], self.rmin[i:i+2], color = colours[i], linewidth = 0.8)
+        plt.xlabel("Iteration Number")
+        plt.ylabel("Rmin")
         plt.show()
         
-     def rainbow_rmin_two(self):
+    def rainbow_rmin_two(self):
         
         if self.data_set.shape[1] - 1 > 2:
             data_set = np.concatenate((self.tSNE(), self.data_set[:, -1].reshape((-1,1))), axis = 1)
@@ -346,7 +417,7 @@ class ILS():
        
         labelled = self.data_set[labelled_points]
         unlabelled = self.data_set[unlabelled_points]
-      
+        
         labelColumn = self.data_set.shape[1]-1
         # lists for ordered output data
         outD = []
@@ -391,9 +462,7 @@ class ILS():
         newIndex = oldIndex[outID]
         if first_run:
             self.indOrdering = indOrdering
-        
-        #labelled = labelled[np.argsort(indOrdering), :]
-        
+                
         # ID of point label was spread from
         closest = np.concatenate((np.array(newIndex).reshape((-1, 1)), np.array(closeID).reshape((-1, 1))), axis=1)      
 
@@ -403,4 +472,13 @@ class ILS():
         self.data_set = labelled[np.argsort(indOrdering)]
         # invert the permutation and then assign the labels
         self.labels = self.data_set[:, -1].copy()
+        
+        if not first_run:
+            self.data_set = np.delete(self.data_set, self.data_set.shape[0] - 1, 0)
+            try:
+                self.rmin = self.rmin[1:]
+                self.indOrdering = self.indOrdering[1:]
+            except:
+                pass
+            
         return closest
