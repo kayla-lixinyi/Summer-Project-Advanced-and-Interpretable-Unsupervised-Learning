@@ -189,7 +189,7 @@ class ILS():
         
         self.data_set = np.concatenate((self.data_set, centre_mass.reshape((1, -1))), axis = 0)
         
-        self.data_set[self.data_set.shape[0]-1, -1] = 1
+        self.data_set[self.data_set.shape[0] - 1, -1] = 1
         
         unlabelled = [i for i in range(self.data_set.shape[0]-1)] # step 1
         
