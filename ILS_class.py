@@ -71,7 +71,7 @@ class ILS():
         if self.min_cluster_size is None and self.n_clusters is None:
             self.min_cluster_size = int (0.05 * X.shape[0])
         elif self.min_cluster_size is None:
-            self.min_cluster_size = int (X.shape[0]/(self.n_clusters * 2)) #currently assumes maximum of 20 clusters
+            self.min_cluster_size = int (X.shape[0]/(self.n_clusters * 2)) 
 
         self.initial_spread(X, fit = True)
         
@@ -85,13 +85,7 @@ class ILS():
         
         index = np.arange(len(self.rmin))
         
-        pks = self.find_maxima_forward(self.rmin, [], 0)
-        reved = self.find_maxima_forward(self.rmin[::-1], [], 0)
-        non_rev = [len(self.rmin) - reved[i] - 1 for i in range(len(reved))]
-        pks = pks + non_rev[::-1]
-        pks = np.sort(pks)
-        
-        pks, n_SD = self.split_disconnected(self.rmin, pks)
+        pks, n_SD = self.possible_points(self.rmin)
         
         maxima, max_SD = self.get_final(pks, self.min_cluster_size//4 * 3, n_SD)
         
@@ -115,43 +109,37 @@ class ILS():
         
         return minima
     
-    def find_maxima_forward(self, rmin, pks, check_peak):
-    
-        if check_peak + self.min_cluster_size > len(rmin) - 1:
-            return pks
-
-        sublst = rmin[check_peak:check_peak + self.min_cluster_size]
-
-        maxind = np.argmax(sublst)
-
-        if maxind == 0:
-            pks.append(check_peak)
-            return self.find_maxima_forward(rmin, pks, check_peak+1)
-        else:
-            return self.find_maxima_forward(rmin, pks, check_peak+1)
-    
-    def split_disconnected(self, rmin, maxs):
-
-        peaks = []
-        num_standev = []
+    def possible_points(self, rmin):
         
-        for i in range(maxs.shape[0]):
-            if maxs[i] < self.min_cluster_size or maxs[i] > len(rmin) - self.min_cluster_size: 
+        num_standev = []
+        peaks =[]
+        
+        for i in range(len(rmin) - 2 * self.min_cluster_size):
+            
+            i = i+self.min_cluster_size
+            
+            sublstB = rmin[i:i + self.min_cluster_size]
+            sublstA = rmin[i-self.min_cluster_size+1:i+1]
+            
+            maxindB = np.argmax(sublstB)
+            maxindA = np.argmax(sublstA)
+            
+            if maxindB != 0 and maxindA != self.min_cluster_size - 1:
                 continue
                 
-            mean = np.mean(rmin[maxs[i] - self.min_cluster_size:maxs[i]])
-            standev = np.var(rmin[maxs[i] - self.min_cluster_size:maxs[i]]) ** 0.5
+            mean = np.mean(sublstB)
+            standev = np.var(sublstB) ** 0.5
             
-            mean1 = np.mean(rmin[maxs[i]:maxs[i]+self.min_cluster_size])
-            standev1 = np.var(rmin[maxs[i]:maxs[i]+self.min_cluster_size]) ** 0.5
+            mean1 = np.mean(sublstA)
+            standev1 = np.var(sublstA) ** 0.5
             
-            signifdiff = rmin[maxs[i]] > mean + self.significance * standev
-            signifdiff1 = rmin[maxs[i]] > mean1 + self.significance * standev1
+            signifdiff = rmin[i] > mean + self.significance * standev
+            signifdiff1 = rmin[i] > mean1 + self.significance * standev1
             
             if signifdiff or signifdiff1: 
-                num_standev.append(max((rmin[maxs[i]] - mean)/standev, (rmin[maxs[i]] - mean1)/standev1))
-                peaks.append(maxs[i])
-                
+                num_standev.append(max((rmin[i] - mean)/standev, (rmin[i] - mean1)/standev1))
+                peaks.append(i)
+            
         return peaks, num_standev
     
     def new_param_fit(self, min_cluster_size = None, n_clusters = None, significance = None):
@@ -201,7 +189,7 @@ class ILS():
         
         self.data_set = np.concatenate((self.data_set, centre_mass.reshape((1, -1))), axis = 0)
         
-        self.data_set[self.data_set.shape[0]-1, -1] = 1
+        self.data_set[self.data_set.shape[0] - 1, -1] = 1
         
         unlabelled = [i for i in range(self.data_set.shape[0]-1)] # step 1
         

@@ -62,7 +62,7 @@ To view examples of this see Testing/ILS_tests_plots.ipynb notebook
 
 If the user already has some labelled points then they can perform the spreading once with `ILS.label_sprd_semi_sup(labelled_points, unlabelled_points)`.
 
-An example is shown in Testing/ils_tests_plots.ipynb
+An example is shown in Testing/ILS_tests_plots.ipynb
 
 ## Clustering Performance/Trouble Shooting
  - Identifying quality of clustering.
@@ -79,7 +79,7 @@ An example is shown in Testing/ils_tests_plots.ipynb
  
  <img src="/ReadMe_Images/Incorrect_Segmentation.png" alt="Poor Clustering" width="200"/>
 
- <img src="/ReadMe_Images/Incorrect_Segmentation.png" alt="Poor Clustering" width="200"/>
+ <img src="/ReadMe_Images/Incorrect_Segmentation2.png" alt="Poor Clustering" width="200"/>
 
  - Large differences in cluster size
  
