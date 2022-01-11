@@ -102,4 +102,5 @@ The current weakness of ILS is the scaling with number of points (as opposed to 
 Unit tests are implemented in this project for testing. It is to achieve a readable, maintainable and trustworthy test set to evaluate the clesterring result of ILS. The testing datasets covers low and high dimensional datasets. 
 
 The result can be plotted by calling .plot_cluster_rmin which supports rainbow coloured clustter results and Rmin plots. In both plots, colours ranges with the labelling sequence from red to purple, which is explicit for users who are interested in how each point in the data set is plotted. In this way, users are able to observe the differences brtween diffrent results and evalute it to find most appropriate clusterring algorithm. 
+ <img src="/ReadMe_Images/Rmin_target.png" alt="Rmin plotting" width="200"/>
 
