@@ -64,6 +64,10 @@ If the user already has some labelled points then they can perform the spreading
 
 An example is shown in Testing/ILS_tests_plots.ipynb
 
+## Changing Parameters
+
+If the user is not satisfied with the clustering they can change the parameters they initially passed and perform the clustering again without having to perform the initial spreading step
+
 ## Clustering Performance/Trouble Shooting
  - Identifying quality of clustering.
  

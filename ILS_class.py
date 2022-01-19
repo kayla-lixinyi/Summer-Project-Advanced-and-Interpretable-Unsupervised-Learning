@@ -144,7 +144,7 @@ class ILS():
     
     def new_param_fit(self, min_cluster_size = None, n_clusters = None, significance = None):
         '''
-        Allow the user to try segmentation with different parameters without having to run the first step again
+        The User can change the parmeters of the model to re-cluster without having to run the initial spreading
         '''
         
         if (min_cluster_size, n_clusters, significance) == (None, None, None):
@@ -164,6 +164,9 @@ class ILS():
         return self
     
     def label_sprd_semi_sup(self, labelled, unlabelled):
+        """
+        Allows the user to perform semi-supervised label spreading. Taking in labelled points and unlabelled points and then performing label spreading
+        """
         
         n_init_points = np.array(labelled).shape[0]
         n_rest = np.array(unlabelled).shape[0]
@@ -201,6 +204,9 @@ class ILS():
         return self
     
     def manual_segmentation(self, inds):
+        """
+        Given a list of integers segment the rmin and find the initial labelling points. Returns the object similar to fit
+        """
         
         if len(inds) == 0:
             raise Exception("No segmentation implies that all the data belongs to the same cluster, ILS is not required")
