@@ -105,9 +105,9 @@ The current weakness of ILS is the scaling with number of points (as opposed to 
 ## Testing and evaluation
 Unit tests are implemented in this project for testing. It is to achieve a readable, maintainable and trustworthy test set to evaluate the clesterring result of ILS. The testing datasets covers low and high dimensional datasets, such as blobs, circles and moons. Also, it includes more complex artifictial and realword datasetswhich are higher dimensional. For visulisation, Bokeh and matplot are used for result evaluation for users. 
 
-After clustering, the result can be evaluated from re-coloured datasets and re-coloured Rmin plots. It is plotted by calling either coloured_rmin and .plot_labels or .rainbow_rmin. 
+After clustering, the result can be evaluated from re-coloured datasets and re-coloured Rmin plots. It is plotted by calling either coloured_rmin and   - .plot_labels or .rainbow_rmin. 
 Functions: .coloured_rmin and .plot_labels supports users to evalute results from dataset and Rmin coloured depending on different clusters. 
-.rainbow_rmin returns coloured clusttering results and Rmin plots coloured by labelling sequences. In both plots, colours ranges with the labelling sequence from red to purple, which is helpful for users who are interested in what sequence each point of the dataset is plotted. In this way, users are supported to compare and evalute the clusterring results in a deeper way, in order to find most appropriate clusterring algorithm. 
+  - .rainbow_rmin returns coloured clusttering results and Rmin plots coloured by labelling sequences. In both plots, colours ranges with the labelling sequence from red to purple, which is helpful for users who are interested in what sequence each point of the dataset is plotted. In this way, users are supported to compare and evalute the clusterring results in a deeper way, in order to find most appropriate clusterring algorithm. 
 
 However, there are also some limitations on the current plotting methods with Bokeh. For high dimensional datasets. for example 3D dataset, Bokeh has some limitations on repsenting the scatters more tridimensionally. It is expected in the fucture work that working out another plotting method to provide users a more intuitive to eveluate the clusterring result. 
 
