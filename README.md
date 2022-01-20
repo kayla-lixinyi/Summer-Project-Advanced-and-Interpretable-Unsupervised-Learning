@@ -118,5 +118,5 @@ After clustering, the result can be evaluated from re-coloured datasets and re-c
 
 <img src="/ReadMe_Images/bokeh_plot_2_1.png" alt="Rmin plotting" width="200"/>
 
-However, there are also some limitations on the current plotting methods with Bokeh. For high dimensional datasets. for example 3D dataset, Bokeh has some limitations on repsenting the scatters more tridimensionally. It is expected in the fucture work that working out another plotting method to provide users a more intuitive to eveluate the clusterring result. 
+However, there are also some limitations on the current plotting methods with Bokeh. For high dimensional datasets, for example three-dimensional datasets, there are limitations on the current plotting methods on repsenting the scatters more tridimensionally. It is expected in the fucture work that working out other plotting method than Bokeh to provide users a more intuitive to eveluate the clusterring result. 
 
