@@ -103,7 +103,7 @@ If the user is not satisfied with the clustering they can change the parameters 
 The current weakness of ILS is the scaling with number of points (as opposed to number of dimensions). Since the ILS algorithm runs the iterative label spreading method twice (first run to generate labels and second run to check labeling results from the first run), the size of the dataset would affect the scaling of the algorithm.
 
 ## Testing and evaluation
-Unit tests are implemented in this project for testing. It is to achieve a readable, maintainable, and trustworthy test set to evaluate the clustering result of ILS. The testing datasets covers low and high dimensional datasets, such as blobs, circles and moons. Also, it includes more complex artificial and real-world data sets which are higher dimensional. For visualization, Bokeh and mat plot are used for result evaluation for users.
+Unit tests are implemented in this project for testing. It is to achieve a readable, maintainable, and trustworthy test set to evaluate the clustering result of ILS. The testing datasets covers low and high dimensional datasets, such as blobs, circles and moons. Also, it includes more complex artificial and real-world data sets which are higher dimensional. For visualization, Bokeh and Matplotlib are used for result evaluation for users.
 
 After clustering, the result can be evaluated from re-coloured datasets and re-coloured Rmin plots. It is plotted by calling either coloured_rmin and .plot_labels or .rainbow_rmin. 
   - Functions: .coloured_rmin and .plot_labels supports users to evaluate results from dataset and Rmin coloured depending on different clusters. 
