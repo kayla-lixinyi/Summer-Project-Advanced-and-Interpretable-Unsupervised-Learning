@@ -36,6 +36,8 @@ testBlobs()
 ```
 
 
+## colouring by cluster
+
     
 ![png](output_2_0.png)
     
@@ -48,12 +50,14 @@ testBlobs()
 
 
     
+    
 ![png](bokeh_plot_2_0.png)
     
 
 
 
-    
+## colouring by labelling sequence
+
 ![png](bokeh_plot_2_1.png)
     
 
