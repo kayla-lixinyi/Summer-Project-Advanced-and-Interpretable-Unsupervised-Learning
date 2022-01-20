@@ -8,10 +8,12 @@ class Simplex():
     def __init__(self, vertices, metric, inds):
         
         self.connected_simplices = []
-        self.inds = inds
+        self.inds = inds # index of points which defines the vertices, helps with checking simplex equality
         self.vertices = vertices
         self.metric = metric
-        V_0 = np.array([self.vertices[0, :] for i in range(self.vertices.shape[0] -1)])
+        
+        # Calculate the hypersphere that circumscribes the simplex
+        V_0 = np.array([self.vertices[0, :] for i in range(self.vertices.shape[0] -1)]) 
         A = 2 * (V_0 - self.vertices[1:, :])
         zero = np.zeros((self.vertices.shape[1], 1))
         V_0n = self.metric(V_0[0, :], zero) ** 2 
@@ -21,6 +23,8 @@ class Simplex():
         except:
             print(self.inds)
         self.hyper_sphere = HyperSphere(centre, metric(centre, vertices[0, :]), self.metric) #O(d^3) :(
+                     
+        self.node = None
         self.facets = [frozenset([j for j in self.inds if j != i]) for i in self.inds]
     
     def __eq__(self, smp): # simplices are equal if they have the same vertices
@@ -36,23 +40,17 @@ class Simplex():
         plt.plot([self.vertices[1, 0], self.vertices[2, 0]], [self.vertices[1, 1], self.vertices[2, 1]])
         
     def getNode(self):
-        try:
+        if self.node is None:
+            return self.create_Graph() # this creates the node and initialise others but we don't want this if we have already created the node
+        else:
             return self.node
-        except:
-            return self.create_Graph()
         
-    def added_simplex(self, num):
-        
-        num_vertices_lessthan = sum([1 for i in self.inds if i < num])
-        
-        return num_vertices_lessthan
-        
-    def create_Graph(self):
+    def create_Graph(self): # initisialises the simplices node and all connected nodes
         if len(self.connected_simplices) == 0:
             raise Exception("Connected simplices have not been computed")
             
-        self.node = Node(self.hyper_sphere.centre, [])
-        self.node.Nodes = [smp.getNode() for smp in self.connected_simplices]
+        self.node = Node(self.hyper_sphere.centre, []) # we must initialise the node before creating connected nodes
+        self.node.Nodes = [smp.getNode() for smp in self.connected_simplices] # recursive step
         
         return self.node
         
@@ -75,6 +73,7 @@ class HyperSphere():
     def contains(self, point):
 
         return self.metric(self.centre, point) < self.radius - 1e-10
+            
 
 class Node():
     
@@ -89,19 +88,27 @@ class Node():
         for i in range(len(self.Nodes)):
             plt.plot([self.position[0], self.Nodes[i].position[0]], [self.position[1], self.Nodes[i].position[1]])
             
-    def __repr__(self):
+    def __str__(self):
+        if self is None:
+            return "None"
         
-        return str((self.position, len(self.Nodes)))
+        return str(self.position) + " " + str([i.position for i in self.Nodes])
     
     def __str__(self):
+        if self is None:
+            return "None"
         
-        return str(self.position) + " " + str(len(self.Nodes))
+        return str(self.position) + " " + str([i.position for i in self.Nodes])
+        
     
 def bounding_simplex(points, metric):
+    """
+    Construct a simplex which bounds the given points
+    """
     
     zero = np.zeros((points.shape[1],))
-    dmins = [np.min(points[:, i]) - 0.1 for i in range(points.shape[1])]
-    dmaxs = [np.max(points[:, i]) + 0.1 for i in range(points.shape[1])]
+    dmins = [-10 * abs(np.min(points[:, i]))  for i in range(points.shape[1])]
+    dmaxs = [10 * abs(np.max(points[:, i])) for i in range(points.shape[1])]
     
     centre = [(m+M)/2 for (m, M) in zip(dmins, dmaxs)]
     tcentre = []
@@ -121,6 +128,9 @@ def bounding_simplex(points, metric):
     return vertices
 
 def bowyer_watson(points, metric):
+    """
+    Implementation of the Bowyer-Watson algorithm
+    """
     
     simplices = []
     num = points.shape[0]
@@ -128,7 +138,7 @@ def bowyer_watson(points, metric):
     super_vert = bounding_simplex(points, metric)
     points = np.concatenate((points, super_vert), axis = 0)
     simplices.append(Simplex(super_vert, metric, [num + i for i in range(points.shape[1]+1)]))
-    for i in range(num):
+    for i in range(num+1):
         badSimplices = []
         for simp in simplices:
             if simp.hyper_sphere.contains(points[i]):
@@ -168,29 +178,57 @@ def bowyer_watson(points, metric):
             
     return fin_simplices
 
+def acceptable_shared_facet(facets, num):
+    """
+    Because we added in a bounding simplex we added extra points. 
+    This creates extra facets in the voronoi that do not partition points in the dataset.
+    So facets with less then two vertices from the original data set are removed which
+    is equivalent to not connecting the simplices
+    """
+    for i in facets:
+        contains_original = [True for j in i if j < num]
+        if len(contains_original) >= 2:
+            return True
+    
+    return False
+
 def connect_simplices(simplices, num, dims):
+    """
+    Connected the simplices which border each other. 
+    This helps with constructing the graph.
+    """
     new_simplices = []
     for j in range(len(simplices)):
-        if simplices[j].added_simplex(num) < 1:
-            continue
         not_shared = set(simplices[j].facets)
         for k in range(len(simplices)):
-            if j == k or simplices[k].added_simplex(num) < 1:
+            if j == k:
                 continue
             shared = not_shared.intersection(simplices[k].facets)
-            if len(shared) > 0 and (simplices[j].added_simplex(num) == dims + 1 or simplices[k].added_simplex(num) == dims + 1):
+            if len(shared) > 0 and (acceptable_shared_facet(shared, num)):
                 simplices[j].connected_simplices.append(simplices[k])
         if len(simplices[j].connected_simplices) > 0:
             new_simplices.append(simplices[j])
-    return new_simplices
+    return new_simplices        
 
 def create_voronoi(points, metric):
+    """
+    Given the points create the voronoi diagram.
+    1. Construct Delauney Triangulation (Bowyer-Watson)
+    2. Create Dual Graph (Connected Centres of Hyperspheres)
+    """
 
     smps = bowyer_watson(points, metric)
     smps = connect_simplices(smps, points.shape[0], points.shape[1])
-    smps[0].create_Graph()
+    for i in smps:
+        if i.node is None:
+            i.create_Graph()
+    
+    for i in smps:
+        i.plot_2D()
+    plt.show()
     
     voronoi = [i.node for i in smps]
     
     return voronoi
+    
     
