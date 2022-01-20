@@ -103,20 +103,20 @@ If the user is not satisfied with the clustering they can change the parameters 
 The current weakness of ILS is the scaling with number of points (as opposed to number of dimensions). Since the ILS algorithm runs the iterative label spreading method twice (first run to generate labels and second run to check labeling results from the first run), the size of the dataset would affect the scaling of the algorithm.
 
 ## Testing and evaluation
-Unit tests are implemented in this project for testing. It is to achieve a readable, maintainable and trustworthy test set to evaluate the clesterring result of ILS. The testing datasets covers low and high dimensional datasets, such as blobs, circles and moons. Also, it includes more complex artifictial and realword datasetswhich are higher dimensional. For visulisation, Bokeh and matplot are used for result evaluation for users. 
+Unit tests are implemented in this project for testing. It is to achieve a readable, maintainable, and trustworthy test set to evaluate the clustering result of ILS. The testing datasets covers low and high dimensional datasets, such as blobs, circles and moons. Also, it includes more complex artificial and real-world data sets which are higher dimensional. For visualization, Bokeh and mat plot are used for result evaluation for users.
 
 After clustering, the result can be evaluated from re-coloured datasets and re-coloured Rmin plots. It is plotted by calling either coloured_rmin and .plot_labels or .rainbow_rmin. 
-  - Functions: .coloured_rmin and .plot_labels supports users to evalute results from dataset and Rmin coloured depending on different clusters. 
+  - Functions: .coloured_rmin and .plot_labels supports users to evaluate results from dataset and Rmin coloured depending on different clusters. 
   
   <img src="/ReadMe_Images/output_2_0.png" alt="Rmin plotting" width="200"/>
 
   <img src="/ReadMe_Images/output_2_1.png" alt="Rmin plotting" width="200"/>
 
-  - .rainbow_rmin returns coloured clusttering results and Rmin plots coloured by labelling sequences. In both plots, colours ranges with the labelling sequence from red to purple, which is helpful for users who are interested in what sequence each point of the dataset is plotted. In this way, users are supported to compare and evalute the clusterring results in a deeper way, in order to find most appropriate clusterring algorithm. 
+  - Function: .rainbow_rmin returns coloured clustering results and Rmin plots coloured by labelling sequences. In both plots, colours ranges with the labelling sequence from red to purple, which is helpful for users who are interested in what sequence each point of the dataset is plotted. In this way, users are supported to compare and evaluate the clustering results in a deeper way, in order to find most appropriate clustering algorithm。 
 
 <img src="/ReadMe_Images/bokeh_plot_2_0.png" alt="Rmin plotting" width="200"/>
 
 <img src="/ReadMe_Images/bokeh_plot_2_1.png" alt="Rmin plotting" width="200"/>
 
-However, there are also some limitations on the current plotting methods with Bokeh. For high dimensional datasets, for example three-dimensional datasets, there are limitations on the current plotting methods on repsenting the scatters more tridimensionally. It is expected in the fucture work that working out other plotting method than Bokeh to provide users a more intuitive to eveluate the clusterring result. 
+However, there are also some limitations on the current plotting methods with Bokeh. For high dimensional datasets, for example three-dimensional datasets, there are limitations on the current plotting methods on representing the scatters in a more tridimensional way. It is expected in the future work that working out other plotting method than Bokeh to provide users a more intuitive to evaluate the clustering result.
 
