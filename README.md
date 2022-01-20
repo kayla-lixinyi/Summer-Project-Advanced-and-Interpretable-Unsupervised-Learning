@@ -114,9 +114,9 @@ After clustering, the result can be evaluated from re-coloured datasets and re-c
 
   - .rainbow_rmin returns coloured clusttering results and Rmin plots coloured by labelling sequences. In both plots, colours ranges with the labelling sequence from red to purple, which is helpful for users who are interested in what sequence each point of the dataset is plotted. In this way, users are supported to compare and evalute the clusterring results in a deeper way, in order to find most appropriate clusterring algorithm. 
 
-However, there are also some limitations on the current plotting methods with Bokeh. For high dimensional datasets. for example 3D dataset, Bokeh has some limitations on repsenting the scatters more tridimensionally. It is expected in the fucture work that working out another plotting method to provide users a more intuitive to eveluate the clusterring result. 
-
 <img src="/ReadMe_Images/bokeh_plot_2_0.png" alt="Rmin plotting" width="200"/>
 
 <img src="/ReadMe_Images/bokeh_plot_2_1.png" alt="Rmin plotting" width="200"/>
+
+However, there are also some limitations on the current plotting methods with Bokeh. For high dimensional datasets. for example 3D dataset, Bokeh has some limitations on repsenting the scatters more tridimensionally. It is expected in the fucture work that working out another plotting method to provide users a more intuitive to eveluate the clusterring result. 
 
