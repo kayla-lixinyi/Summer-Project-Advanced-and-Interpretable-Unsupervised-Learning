@@ -44,15 +44,23 @@ testBlobs()
 
     
 ![png](output_2_1.png)
+
+
+
+    
+![png](bokeh_plot_2_0.png)
+    
+
+
+
+    
+![png](bokeh_plot_2_1.png)
     
 
 
 
 
-<div class="bk-root">
-    <a href="https://bokeh.org" target="_blank" class="bk-logo bk-logo-small bk-logo-notebook"></a>
-    <span id="18574">Loading BokehJS ...</span>
-</div>
+
 
 
 
@@ -125,11 +133,14 @@ testCircles()
 
 
 
+    
+![png](bokeh_plot_3_0.png)
+    
 
-<div class="bk-root">
-    <a href="https://bokeh.org" target="_blank" class="bk-logo bk-logo-small bk-logo-notebook"></a>
-    <span id="19914">Loading BokehJS ...</span>
-</div>
+
+
+    
+![png](bokeh_plot_3_1.png)
 
 
 
@@ -198,11 +209,14 @@ testMoons()
 
 
 
+    
+![png](bokeh_plot_4_0.png)
+    
 
-<div class="bk-root">
-    <a href="https://bokeh.org" target="_blank" class="bk-logo bk-logo-small bk-logo-notebook"></a>
-    <span id="21302">Loading BokehJS ...</span>
-</div>
+
+
+    
+![png](bokeh_plot_4_1.png)
 
 
 
@@ -273,13 +287,14 @@ testArtSet_one()
 
 
 
-
-<div class="bk-root">
-    <a href="https://bokeh.org" target="_blank" class="bk-logo bk-logo-small bk-logo-notebook"></a>
-    <span id="22738">Loading BokehJS ...</span>
-</div>
+    
+![png](bokeh_plot_5_0.png)
+    
 
 
+
+    
+![png](bokeh_plot_5_1.png)
 
 
 
@@ -347,13 +362,14 @@ testArtSet_two()
 
 
 
-<div class="bk-root">
-    <a href="https://bokeh.org" target="_blank" class="bk-logo bk-logo-small bk-logo-notebook"></a>
-    <span id="24222">Loading BokehJS ...</span>
-</div>
+    
+![png](bokeh_plot_6_0.png)
+    
 
 
 
+    
+![png](bokeh_plot_6_1.png)
 
 
 
@@ -419,14 +435,14 @@ testArtSet_three()
 
 
 
-
-<div class="bk-root">
-    <a href="https://bokeh.org" target="_blank" class="bk-logo bk-logo-small bk-logo-notebook"></a>
-    <span id="25754">Loading BokehJS ...</span>
-</div>
+    
+![png](bokeh_plot_7_0.png)
+    
 
 
 
+    
+![png](bokeh_plot_7_1.png)
 
 
 
@@ -492,11 +508,13 @@ test_threeD_ArtSet()
 
 
 
+![png](bokeh_plot_8_0.png)
+    
 
-<div class="bk-root">
-    <a href="https://bokeh.org" target="_blank" class="bk-logo bk-logo-small bk-logo-notebook"></a>
-    <span id="27334">Loading BokehJS ...</span>
-</div>
+
+
+    
+![png](bokeh_plot_8_1.png)
 
 
 
