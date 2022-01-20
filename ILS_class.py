@@ -11,6 +11,7 @@ from sklearn.manifold import TSNE
 # Bokeh
 from bokeh.plotting import figure, show
 from bokeh.io import show
+from bokeh.io import output_notebook
 from bokeh.palettes import Viridis256, Turbo256
 from bokeh.plotting import figure
 from bokeh.transform import linear_cmap
@@ -345,25 +346,10 @@ class ILS():
         plt.ylabel("Rmin")
         plt.show()
         
-    def rainbow_rmin(self):
+    def rainbow_rmin(self, notebook=False):
         
-        if self.data_set.shape[1] - 1 > 2:
-            data_set = np.concatenate((self.tSNE(), self.data_set[:, -1].reshape((-1,1))), axis = 1)
-        else:
-            data_set = self.data_set
-        
-        colours = cm.gist_rainbow(np.linspace(0, 1, len(self.rmin)))
-        for i in range(len(self.rmin)):
-            plt.scatter(data_set[:, 0].tolist()[self.indOrdering[i]], data_set[:, 1].tolist()[self.indOrdering[i]], color=colours[i], s =2)
-        plt.show()
-        
-        for i in range(len(self.rmin)-2):
-            plt.plot([i, i+1], self.rmin[i:i+2], color = colours[i], linewidth = 0.8)
-        plt.xlabel("Iteration Number")
-        plt.ylabel("Rmin")
-        plt.show()
-        
-    def rainbow_rmin_two(self):
+        if notebook:
+            output_notebook()
         
         if self.data_set.shape[1] - 1 > 2:
             data_set = np.concatenate((self.tSNE(), self.data_set[:, -1].reshape((-1,1))), axis = 1)
@@ -382,6 +368,13 @@ class ILS():
         line = p.line(x, self.rmin, line_color="grey", line_width=1)
         p.circle(x, self.rmin, color=mapper, size=1)
         
+        show(p)
+        number_of_points = self.data_set.shape[0]
+        ratio = 256 / number_of_points
+        colours = list(Turbo256)
+        colours = [colours[int (i * ratio)] for i in range(number_of_points)]
+        p = figure(width=500, height=250)
+        p.circle(data_set[self.indOrdering, 0], data_set[self.indOrdering, 1], fill_color = colours, alpha = 0.6, line_color = None)
         show(p)
     
     def plot_labels(self):
